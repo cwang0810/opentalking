@@ -32,6 +32,9 @@ _MD_NUMLIST_RE = re.compile(r"^\s*\d+\.\s+", re.MULTILINE)
 _MD_CODE_RE = re.compile(r"`([^`]*)`")
 # Markdown links: [text](url)
 _MD_LINK_RE = re.compile(r"\[([^\]]*)\]\([^)]*\)")
+_EDGE_BOUNDARY_CLOSERS = "”’」』）》】〕〉）)]}\"'"
+_EDGE_BOUNDARY_OPENERS = "“‘「『《【〔〈（([{\"'"
+_SPEECH_CONTENT_RE = re.compile(r"[\w\u3400-\u9fff]", flags=re.UNICODE)
 
 
 def strip_emoji(text: str) -> str:
@@ -47,4 +50,22 @@ def strip_markdown(text: str) -> str:
     text = _MD_HEADER_RE.sub("", text)       # ## Header → Header
     text = _MD_NUMLIST_RE.sub("", text)      # 1. item → item
     text = _MD_LIST_RE.sub("", text)         # - item → item
+    return text
+
+
+def sanitize_tts_text(text: str) -> str:
+    """Normalize streamed LLM text into something Edge TTS handles reliably."""
+    text = strip_markdown(strip_emoji(text)).strip()
+    if not text:
+        return ""
+
+    # Streaming sentence splits can leave orphan closing quotes/brackets at the
+    # next sentence boundary, e.g. `”理发师...` or a trailing bare `”`.
+    while len(text) > 1 and text[:1] in _EDGE_BOUNDARY_CLOSERS:
+        text = text[1:].lstrip()
+    while len(text) > 1 and text[-1:] in _EDGE_BOUNDARY_OPENERS:
+        text = text[:-1].rstrip()
+
+    if not text or _SPEECH_CONTENT_RE.search(text) is None:
+        return ""
     return text

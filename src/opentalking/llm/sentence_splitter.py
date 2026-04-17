@@ -13,8 +13,10 @@ class SentenceSplitter:
     # Chinese sentence-ending punctuation: split immediately after them.
     # English sentence-ending punctuation: split when followed by a space.
     _SPLIT_RE = re.compile(
-        r"([\u3002\uff01\uff1f]"  # Chinese period / excl / question
-        r"|[.!?](?:\s))"          # English punct + whitespace
+        r"("                                          # whole sentence boundary
+        r"[\u3002\uff01\uff1f][”’」』）》】〕〉）\]\"']*"  # Chinese punct + optional closers
+        r"|[.!?][”’」』）》】〕〉）\]\"']*(?:\s|$)"        # English punct + closers + whitespace/end
+        r")"
     )
 
     def __init__(self) -> None:

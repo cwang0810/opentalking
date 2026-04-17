@@ -21,7 +21,7 @@ from opentalking.models.flashtalk.ws_client import FlashTalkWSClient
 from opentalking.rtc.aiortc_adapter import WebRTCSession
 from opentalking.tts.edge.adapter import EdgeTTSAdapter
 from opentalking.worker.bus import publish_event
-from opentalking.worker.text_sanitize import strip_emoji, strip_markdown
+from opentalking.worker.text_sanitize import sanitize_tts_text, strip_emoji, strip_markdown
 
 log = logging.getLogger(__name__)
 
@@ -483,6 +483,9 @@ class FlashTalkRunner:
         self.flashtalk = flashtalk_client or FlashTalkWSClient(
             self._flashtalk_ws_url
         )
+        # Remote FlashTalk serves a single active session; a second background
+        # init for idle-cache building can replace the live session underneath us.
+        self._allow_background_idle_cache = flashtalk_client is not None
 
         # LLM client
         self.llm = OpenAICompatibleLLMClient(
@@ -519,6 +522,7 @@ class FlashTalkRunner:
         self._tts_opener_recent_ids: list[str] = []
         self._tts_opener_warm_task: asyncio.Task[None] | None = None
         self._media_clock_started = False
+        self._speech_media_active = False
 
     def avatar_path(self) -> Path:
         return (self.avatars_root / self.avatar_id).resolve()
@@ -567,8 +571,11 @@ class FlashTalkRunner:
         self.ready_event.set()
         log.info("FlashTalkRunner prepared: session=%s, avatar=%s", self.session_id, self.avatar_id)
 
-        # Build idle cache in background without disturbing the active speaking session.
-        asyncio.create_task(self._prepare_idle_cache_background(ref_image_path))
+        # Only build idle cache in-process for local deployments. Remote
+        # FlashTalk backends keep a single active session, so a background init
+        # would evict the live user session.
+        if self._allow_background_idle_cache:
+            asyncio.create_task(self._prepare_idle_cache_background(ref_image_path))
 
         global _TTS_OPENER_PRELOAD_TASK
         if _env_bool("FLASHTALK_TTS_OPENER_ENABLE", False) and _env_bool(
@@ -595,7 +602,7 @@ class FlashTalkRunner:
         interval = 1.0 / fps
         while not self._closed:
             if (
-                self._speaking
+                (self._speaking and self._speech_media_active)
                 or not self.webrtc
                 or not self._webrtc_started.is_set()
             ):
@@ -958,6 +965,7 @@ class FlashTalkRunner:
                 # Drop queued idle frames so speech starts from a clean A/V boundary.
                 self.webrtc.clear_media_queues()
                 self._media_clock_started = False
+                self._speech_media_active = False
 
             await set_session_state(self.redis, self.session_id, "speaking")
             await publish_event(
@@ -1055,9 +1063,9 @@ class FlashTalkRunner:
                 async def _tts_sentence(sentence: str):
                     nonlocal audio_buffer
                     import time as _t
-                    tts_text = strip_markdown(strip_emoji(sentence)).strip()
+                    tts_text = sanitize_tts_text(sentence)
                     if not tts_text:
-                        log.info("Skipping empty TTS text (was all emoji)")
+                        log.info("Skipping empty TTS text after sanitize: %r", sentence[:40])
                         return
 
                     await publish_event(
@@ -1247,8 +1255,10 @@ class FlashTalkRunner:
 
                         log.info("Pre-buffer done (%d chunks), starting pacing", generated)
                         if self.webrtc:
+                            self.webrtc.clear_media_queues()
                             self.webrtc.reset_clocks()
                             self._media_clock_started = True
+                            self._speech_media_active = True
                         for pcm_chunk, buffered_frames in pending:
                             await self._queue_av_chunk(pcm_chunk, buffered_frames)
                         pending.clear()
@@ -1259,8 +1269,10 @@ class FlashTalkRunner:
                 if pending and not self._interrupt.is_set():
                     log.info("Flushing short pre-buffer (%d chunks), starting pacing", len(pending))
                     if self.webrtc:
+                        self.webrtc.clear_media_queues()
                         self.webrtc.reset_clocks()
                         self._media_clock_started = True
+                        self._speech_media_active = True
                     for pcm_chunk, buffered_frames in pending:
                         await self._queue_av_chunk(pcm_chunk, buffered_frames)
 
@@ -1279,6 +1291,7 @@ class FlashTalkRunner:
                 raise
             finally:
                 self._speaking = False
+                self._speech_media_active = False
 
             stored_response = _merge_spoken_reply(spoken_prefix, full_response)
             if stored_response:
@@ -1400,6 +1413,7 @@ class FlashTalkRunner:
             except asyncio.TimeoutError:
                 pass
         self._speaking = False
+        self._speech_media_active = False
         await self._publish_speech_ended()
         if not self._closed:
             await set_session_state(self.redis, self.session_id, "ready")

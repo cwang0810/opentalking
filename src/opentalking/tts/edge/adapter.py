@@ -164,6 +164,7 @@ async def _stream_decode_mp3_to_pcm_chunks(
 
     writer = asyncio.create_task(_feed_ffmpeg_stdin(proc, audio_iter))
     pcm_buffer = bytearray()
+    yielded_audio = False
     try:
         while True:
             raw = await proc.stdout.read(read_size)
@@ -174,12 +175,14 @@ async def _stream_decode_mp3_to_pcm_chunks(
                 chunk = _pcm_bytes_to_chunk(bytes(pcm_buffer[:chunk_bytes]), target_sr)
                 del pcm_buffer[:chunk_bytes]
                 if chunk is not None:
+                    yielded_audio = True
                     yield chunk
         if len(pcm_buffer) % 2:
             pcm_buffer = pcm_buffer[:-1]
         if pcm_buffer:
             chunk = _pcm_bytes_to_chunk(bytes(pcm_buffer), target_sr)
             if chunk is not None:
+                yielded_audio = True
                 yield chunk
     except BaseException:
         with contextlib.suppress(ProcessLookupError):
@@ -191,8 +194,13 @@ async def _stream_decode_mp3_to_pcm_chunks(
             await writer
 
     rc = await proc.wait()
-    if rc not in (0, None):
+    if rc not in (0, None) and not yielded_audio:
         raise RuntimeError(f"ffmpeg TTS stream decode failed with exit code {rc}")
+    if rc not in (0, None):
+        log.warning(
+            "ffmpeg TTS stream decode exited with code %s after yielding audio; ignoring tail error",
+            rc,
+        )
 
 
 class EdgeTTSAdapter:
