@@ -350,7 +350,7 @@ export function SettingsPanel({
                 {currentAvatar.name ?? currentAvatar.id}
               </p>
               <p className="mt-1 truncate text-xs font-medium text-cyan-700">
-                {MODEL_LABELS[currentAvatar.model_type] ?? currentAvatar.model_type}
+                数字人形象资产
               </p>
               <p className="mt-2 text-xs leading-relaxed text-slate-600">
                 启动前可在中间区域查看照片并切换数字人形象。

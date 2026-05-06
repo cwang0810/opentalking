@@ -537,21 +537,13 @@ export default function App() {
         const initialAvatar = pickInitialAvatar(av, mo.models);
         if (initialAvatar) {
           setAvatarId(initialAvatar.id);
-          setModel(initialAvatar.model_type);
+          setModel((prev) => (mo.models.includes(prev) ? prev : initialAvatar.model_type));
         }
       } catch {
         setConnection("error");
       }
     })();
   }, [loadVoices]);
-
-  // Keep model aligned with selected avatar
-  useEffect(() => {
-    const a = avatars.find((x) => x.id === avatarId);
-    if (a) {
-      setModel(a.model_type);
-    }
-  }, [avatarId, avatars]);
 
   // ---------- SSE ----------
   useEffect(() => {
@@ -858,6 +850,42 @@ export default function App() {
   const handleSaveReferenceImage = useCallback(async () => {
     await saveReferenceImageFile(referenceImageFile);
   }, [referenceImageFile, saveReferenceImageFile]);
+
+  const handleCreateCustomAvatar = useCallback(async (file: File, name: string) => {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      notify("请先给形象起个名字。", "info");
+      return;
+    }
+    try {
+      window.localStorage.setItem(CUSTOM_REFERENCE_NAME_KEY, trimmedName);
+    } catch {
+      /* ignore */
+    }
+    setReferenceSaving(true);
+    try {
+      const fd = new FormData();
+      fd.set("base_avatar_id", avatarId);
+      fd.set("name", trimmedName);
+      fd.set("image", file);
+      const created = await apiPostForm<AvatarSummary>("/avatars/custom", fd);
+      setAvatars((prev) => {
+        const filtered = prev.filter((avatar) => avatar.id !== created.id);
+        return [...filtered, created];
+      });
+      setAvatarId(created.id);
+      const sid = sessionIdRef.current;
+      if (sid) await releaseSession(sid);
+      resetLiveState(true);
+      setConnection("idle");
+      notify(`自定义形象「${created.name ?? trimmedName}」已加入形象库。`, "success");
+    } catch (e) {
+      console.warn("create custom avatar failed", e);
+      notify("创建自定义形象失败，请查看后端日志。", "error");
+    } finally {
+      setReferenceSaving(false);
+    }
+  }, [avatarId, notify, releaseSession, resetLiveState]);
 
   const handleReturnToAvatarSelection = useCallback(() => {
     if (!window.confirm("更换数字人会结束当前会话，是否继续？")) return;
@@ -1236,6 +1264,10 @@ export default function App() {
   const currentAvatar = avatars.find((a) => a.id === avatarId) ?? null;
   const showStart = connection === "idle" || connection === "error" || connection === "connecting" || connection === "queued";
   const chatMaxVisible = readChatMaxVisible();
+  const selectedModelLabel = MODEL_LABELS_FOR_STAGE[model] ?? model;
+  const selectedVoiceLabel = isEdgeTts(ttsProvider)
+    ? EDGE_ZH_VOICES.find((voice) => voice.id === edgeVoice)?.label ?? edgeVoice
+    : bailianVoices.find((voice) => voice.id === qwenVoice)?.label ?? (qwenVoice || "暂无音色");
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 lg:h-screen lg:overflow-hidden">
@@ -1387,16 +1419,18 @@ export default function App() {
                   <AvatarSelectionStage
                     avatars={avatars}
                     selectedAvatar={currentAvatar}
+                    selectedModelLabel={selectedModelLabel}
+                    selectedVoiceLabel={selectedVoiceLabel}
                     loading={connection === "connecting"}
                     queued={connection === "queued"}
                     queueInfo={queueInfo}
-                  onAvatarChange={handleAvatarChange}
-                  onStart={() => void handleStart()}
-                  onCustomReferenceUpload={(file, name) => void saveReferenceImageFile(file, name)}
-                  referenceSaving={referenceSaving}
-                />
-              </div>
-            ) : null}
+                    onAvatarChange={handleAvatarChange}
+                    onStart={() => void handleStart()}
+                    onCustomAvatarCreate={(file, name) => void handleCreateCustomAvatar(file, name)}
+                    referenceSaving={referenceSaving}
+                  />
+                </div>
+              ) : null}
             </div>
 
             {connection === "live" || connection === "expiring" ? (

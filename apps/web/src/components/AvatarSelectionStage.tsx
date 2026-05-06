@@ -2,25 +2,19 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import type { AvatarSummary } from "../lib/api";
 import { buildApiUrl } from "../lib/api";
 
-const MODEL_LABELS: Record<string, string> = {
-  flashhead: "FlashHead",
-  flashtalk: "FlashTalk",
-  musetalk: "MuseTalk",
-  qingyu_v3: "Qingyu V3",
-  wav2lip: "Wav2Lip",
-};
-
 const CUSTOM_REFERENCE_NAME_KEY = "opentalking-custom-reference-name";
 
 type AvatarSelectionStageProps = {
   avatars: AvatarSummary[];
   selectedAvatar: AvatarSummary | null;
+  selectedModelLabel: string;
+  selectedVoiceLabel: string;
   loading: boolean;
   queued: boolean;
   queueInfo?: { position: number; message: string } | null;
   onAvatarChange: (id: string) => void;
   onStart: () => void;
-  onCustomReferenceUpload: (file: File, name: string) => void;
+  onCustomAvatarCreate: (file: File, name: string) => void;
   referenceSaving?: boolean;
 };
 
@@ -40,12 +34,14 @@ function AvatarPreviewImage({ avatar, className }: { avatar: AvatarSummary; clas
 export function AvatarSelectionStage({
   avatars,
   selectedAvatar,
+  selectedModelLabel,
+  selectedVoiceLabel,
   loading,
   queued,
   queueInfo,
   onAvatarChange,
   onStart,
-  onCustomReferenceUpload,
+  onCustomAvatarCreate,
   referenceSaving = false,
 }: AvatarSelectionStageProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -84,7 +80,7 @@ export function AvatarSelectionStage({
     } catch {
       /* ignore */
     }
-    onCustomReferenceUpload(customFile, name);
+    onCustomAvatarCreate(customFile, name);
     setCustomUploadOpen(false);
   };
 
@@ -122,7 +118,7 @@ export function AvatarSelectionStage({
                 </div>
                 <div className="px-3 py-2">
                   <span className="text-xs font-medium text-cyan-800">
-                    {referenceSaving ? "上传中..." : "从本地上传参考图"}
+                    {referenceSaving ? "创建中..." : "从本地上传新形象"}
                   </span>
                 </div>
               </button>
@@ -165,12 +161,9 @@ export function AvatarSelectionStage({
                         className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]"
                       />
                     </div>
-                    <div className="flex items-center justify-between gap-2 px-3 py-2">
+                    <div className="px-3 py-2">
                       <span className="truncate text-xs font-medium text-slate-500">
-                        {MODEL_LABELS[avatar.model_type] ?? avatar.model_type}
-                      </span>
-                      <span className="shrink-0 text-xs text-slate-400">
-                        {avatar.width} x {avatar.height}
+                        数字人形象
                       </span>
                     </div>
                   </button>
@@ -191,7 +184,7 @@ export function AvatarSelectionStage({
                   </h2>
                 </div>
                 <span className="shrink-0 rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-xs font-medium text-cyan-700">
-                  {MODEL_LABELS[selectedAvatar.model_type] ?? selectedAvatar.model_type}
+                  形象资产
                 </span>
               </div>
               <div className="relative flex h-[min(42vh,380px)] shrink-0 items-center justify-center bg-slate-950 p-4 xl:h-auto xl:min-h-0 xl:flex-1">
@@ -202,6 +195,16 @@ export function AvatarSelectionStage({
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-slate-950/65 to-transparent" />
               </div>
               <div className="border-t border-slate-200 bg-white p-4">
+                <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                    <p className="text-xs font-medium text-slate-500">已选驱动模型</p>
+                    <p className="mt-1 truncate text-sm font-semibold text-slate-950">{selectedModelLabel}</p>
+                  </div>
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                    <p className="text-xs font-medium text-slate-500">已选音色</p>
+                    <p className="mt-1 truncate text-sm font-semibold text-slate-950">{selectedVoiceLabel}</p>
+                  </div>
+                </div>
                 {queued ? (
                   <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-800">
                     前面还有 {queueInfo?.position ?? 1} 人，请稍候...
@@ -259,7 +262,7 @@ export function AvatarSelectionStage({
                   <span className="block text-sm font-semibold text-slate-950">
                     {customFile ? customFile.name : "选择本地图片"}
                   </span>
-                  <span className="mt-0.5 block text-xs text-slate-500">支持 PNG、JPG、WebP</span>
+                  <span className="mt-0.5 block text-xs text-slate-500">会作为新资产加入形象库</span>
                 </span>
               </button>
             </div>
@@ -277,7 +280,7 @@ export function AvatarSelectionStage({
                 disabled={referenceSaving || !customFile || !customName.trim()}
                 className="rounded-lg bg-cyan-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {referenceSaving ? "上传中..." : "保存形象"}
+                {referenceSaving ? "创建中..." : "保存形象"}
               </button>
             </div>
           </div>
