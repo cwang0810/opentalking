@@ -149,6 +149,26 @@ echo "  log:            $log_file"
   export OMNIRT_FLASHTALK_PORT="$flashtalk_port"
   export OMNIRT_FLASHTALK_NPROC_PER_NODE="$nproc"
 
+  # OmniRT FlashTalk 渲染参数：传递给 omnirt/scripts/start_flashtalk_ws.sh
+  # 如果 env 文件中未设置，使用与 opentalking/.env 一致的默认值
+  export FLASHTALK_HEIGHT="${FLASHTALK_HEIGHT:-704}"
+  export FLASHTALK_WIDTH="${FLASHTALK_WIDTH:-416}"
+  export FLASHTALK_FRAME_NUM="${FLASHTALK_FRAME_NUM:-25}"
+  export FLASHTALK_MOTION_FRAMES_NUM="${FLASHTALK_MOTION_FRAMES_NUM:-1}"
+  export FLASHTALK_TGT_FPS="${FLASHTALK_TGT_FPS:-25}"
+  export FLASHTALK_SAMPLE_STEPS="${FLASHTALK_SAMPLE_STEPS:-2}"
+  export FLASHTALK_JPEG_QUALITY="${FLASHTALK_JPEG_QUALITY:-50}"
+  export FLASHTALK_JPEG_WORKERS="${FLASHTALK_JPEG_WORKERS:-4}"
+
+  echo "  FLASHTALK_FRAME_NUM=${FLASHTALK_FRAME_NUM:-<unset>}"
+  echo "  FLASHTALK_MOTION_FRAMES_NUM=${FLASHTALK_MOTION_FRAMES_NUM:-<unset>}"
+  echo "  FLASHTALK_HEIGHT=${FLASHTALK_HEIGHT:-<unset>}"
+  echo "  FLASHTALK_WIDTH=${FLASHTALK_WIDTH:-<unset>}"
+  echo "  FLASHTALK_SAMPLE_STEPS=${FLASHTALK_SAMPLE_STEPS:-<unset>}"
+  echo "  FLASHTALK_TGT_FPS=${FLASHTALK_TGT_FPS:-<unset>}"
+  echo "  FLASHTALK_JPEG_QUALITY=${FLASHTALK_JPEG_QUALITY:-<unset>}"
+  echo "  FLASHTALK_JPEG_WORKERS=${FLASHTALK_JPEG_WORKERS:-<unset>}"
+
   if [[ "$install_deps" == "1" ]]; then
     if [[ "$backend" == "ascend" ]]; then
       python -m omnirt.cli.main runtime install flashtalk \

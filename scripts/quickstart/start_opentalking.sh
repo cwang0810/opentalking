@@ -98,11 +98,32 @@ else
   echo "  omnirt:  disabled or read from .env"
 fi
 
-(
-  cd "$repo_root"
-  source .venv/bin/activate
-  exec opentalking-unified
-) >"$log_file" 2>&1 &
+  (
+    cd "$repo_root"
+    source .venv/bin/activate
+
+    # FlashTalk idle 帧（说话间隙）
+    export FLASHTALK_IDLE_ENABLE="${FLASHTALK_IDLE_ENABLE:-1}"
+    export FLASHTALK_IDLE_SOURCE="${FLASHTALK_IDLE_SOURCE:-generated}"
+    export FLASHTALK_IDLE_CACHE_DIR="${FLASHTALK_IDLE_CACHE_DIR:-./models/.idle_cache}"
+    export FLASHTALK_IDLE_MOUTH_LOCK="${FLASHTALK_IDLE_MOUTH_LOCK:-0.97}"
+    export FLASHTALK_IDLE_EYE_LOCK="${FLASHTALK_IDLE_EYE_LOCK:-0.65}"
+
+    # FlashTalk TTS 拼接平滑
+    export OPENTALKING_FLASHTALK_TTS_BOUNDARY_FADE_MS="${OPENTALKING_FLASHTALK_TTS_BOUNDARY_FADE_MS:-18}"
+    export OPENTALKING_FLASHTALK_TTS_COALESCE_MIN_CHARS="${OPENTALKING_FLASHTALK_TTS_COALESCE_MIN_CHARS:-6}"
+    export OPENTALKING_FLASHTALK_TTS_COALESCE_MAX_CHARS="${OPENTALKING_FLASHTALK_TTS_COALESCE_MAX_CHARS:-80}"
+    export OPENTALKING_FLASHTALK_TTS_TAIL_FADE_MS="${OPENTALKING_FLASHTALK_TTS_TAIL_FADE_MS:-80}"
+    export OPENTALKING_FLASHTALK_TTS_TRAILING_SILENCE_MS="${OPENTALKING_FLASHTALK_TTS_TRAILING_SILENCE_MS:-320}"
+
+    # 其它运行时参数
+    export OPENTALKING_FFMPEG_BIN="${OPENTALKING_FFMPEG_BIN:-ffmpeg}"
+    export OPENTALKING_TTS_STREAMING_DECODE="${OPENTALKING_TTS_STREAMING_DECODE:-1}"
+    export OPENTALKING_TTS_SAMPLE_RATE="${OPENTALKING_TTS_SAMPLE_RATE:-16000}"
+    export OMNIRT_AUDIO2VIDEO_PATH_TEMPLATE="${OMNIRT_AUDIO2VIDEO_PATH_TEMPLATE:-/v1/audio2video/{model}}"
+
+    exec opentalking-unified
+  ) >"$log_file" 2>&1 &
 
 pid="$!"
 echo "$pid" > "$pid_file"

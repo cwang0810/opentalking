@@ -50,4 +50,5 @@ stop_pid_file() {
 stop_pid_file "OpenTalking API" "$run_dir/opentalking-api.pid"
 stop_pid_file "OpenTalking frontend" "$run_dir/opentalking-web.pid"
 stop_pid_file "OmniRT Wav2Lip" "$run_dir/omnirt-wav2lip.pid"
-stop_pid_file "OmniRT FlashTalk endpoint" "$run_dir/omnirt-flashtalk.pid"
+stop_pid_file "OmniRT FlashTalk endpoint" "$DIGITAL_HUMAN_HOME/omnirt/outputs/omnirt-flashtalk-ws.pid"
+stop_pid_file "OmniRT FlashTalk avatar gateway" "$run_dir/omnirt-flashtalk.pid"
