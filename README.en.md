@@ -372,6 +372,7 @@ bash scripts/deploy_ascend_910b.sh
 - [Architecture](docs/en/developer-guide/architecture.md)
 - [Configuration](docs/en/user-guide/configuration.md)
 - [Deployment](docs/en/user-guide/deployment.md) (Docker Compose, distributed deployment)
+- [Benchmark](docs/benchmark.md)
 - [Model adapters](docs/en/developer-guide/model-adapter.md)
 - [Contributing](CONTRIBUTING.md) (dev environment, CLI tools, ruff / mypy / pytest)
 

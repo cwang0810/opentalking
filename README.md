@@ -613,6 +613,7 @@ export OMNIRT_WAV2LIP_MAX_LONG_EDGE=832
 - [架构说明](docs/zh/developer-guide/architecture.md)
 - [配置说明](docs/zh/user-guide/configuration.md)
 - [部署文档](docs/zh/user-guide/deployment.md)（Docker Compose、分布式部署）
+- [基准测试](docs/benchmark.md)
 - [模型适配](docs/zh/developer-guide/model-adapter.md)
 - [贡献指南](CONTRIBUTING.md)（开发环境、CLI 工具、ruff / mypy / pytest）
 

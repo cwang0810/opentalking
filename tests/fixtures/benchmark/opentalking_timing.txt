@@ -1,0 +1,4 @@
+2026-05-13 10:00:01 INFO FlashTalk WS chunk: frames=25 payload=812KB wait=0.91s parse=0.004s decode=0.018s workers=4
+2026-05-13 10:00:02 INFO FlashTalk WS chunk: frames=25 payload=806KB wait=0.88s parse=0.003s decode=0.017s workers=4
+2026-05-13 10:00:03 INFO Speak pipeline timing: session=bench-1 speak_wall_ms=2450 parallel_total_ms=2310 llm_first_token_ms=180 llm_stream_ms=620 tts_worker_wall_ms=740 opener_ms=0 llm_tts_gather_ms=760 producer_wall_ms=780 flashtalk_generate_sum_ms=1790 flashtalk_chunks=2 consumer_wall_ms=1880 first_chunk_queued_ms=420 first_flashtalk_return_ms=1010 first_webrtc_queue_ms=1120 api_enqueue_to_speak_enter_wall_ms=35 first_frame_from_api_wall_ms=1165 response_chars=18
+2026-05-13 10:01:01 INFO speak_uploaded_pcm timing: session=bench-2 wall_ms=1850 parallel_ms=1810 producer_ms=15 flashtalk_sum_ms=1790 chunks=2 consumer_ms=1805 first_chunk_ms=20 first_ft_ms=930 first_webrtc_ms=950
