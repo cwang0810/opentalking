@@ -25,6 +25,7 @@
   <a href="#architecture">Architecture</a> ·
   <a href="#quickstart">Quickstart</a> ·
   <a href="#roadmap">Roadmap</a> ·
+  <a href="#documentation">Documentation</a> ·
   <a href="#acknowledgements">Acknowledgements</a>
 </p>
 
@@ -341,28 +342,28 @@ bash scripts/deploy_ascend_910b.sh
 
 ## Roadmap
 
-- [x] **Real-time digital-human baseline**  
+- [x] **Real-time digital-human baseline**
   Web console, LLM dialogue, TTS, subtitle events, WebRTC media playback.
 
-- [ ] **More natural realtime dialogue(in progress)**  
+- [ ] **More natural realtime dialogue (in progress)**
   Barge-in, session state, low-latency response, audio-video sync, error recovery.
 
-- [ ] **OmniRT model service integration**  
+- [x] **OmniRT model service integration**
   OmniRT backend for heavyweight, multi-card, and remote inference while lightweight models can remain local or direct-WS.
 
-- [ ] **Consumer-grade GPU support**  
+- [x] **Consumer-grade GPU support**
   Lightweight models, single-card realtime configs, end-to-end benchmarks for RTX 3090 / 4090.
 
-- [ ] **High-quality private deployment(in progress)**  
+- [ ] **High-quality private deployment (in progress)**
   Enterprise private deployment with pluggable synthesis backends, OmniRT capacity scheduling for heavyweight models, health checks, production monitoring; Ascend 910B and similar enterprise GPU / NPU paths in progress.
 
-- [ ] **Custom characters and voices**  
+- [x] **Custom characters and voices**
   Character config, built-in voice selection, reference audio upload, natural-language voice description, and OmniRT-driven voice synthesis.
 
-- [ ] **Agent and memory capabilities**  
+- [ ] **Agent and memory capabilities**
   Integration with OpenClaw or external agents to reuse their memory, tool use, and knowledge-base capabilities.
 
-- [ ] **Production-grade platform**  
+- [ ] **Production-grade platform**
   Multi-session scheduling, observability, security and compliance, licensed voices, synthetic-content provenance.
 
 ## Documentation
