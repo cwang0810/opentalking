@@ -48,12 +48,21 @@ model:
   torch_device: cpu
   default_model: wav2lip
 models:
+  mock:
+    backend: mock
   wav2lip:
+    backend: omnirt
     stream_batch_size: 8
     pads: [0, 10, 0, 0]
   musetalk:
+    backend: omnirt
     context_ms: 320.0
     silence_gate: 0.04
   flashtalk:
+    backend: omnirt
     frame_num: 33
     sample_steps: 2
+  flashhead:
+    backend: direct_ws
+  quicktalk:
+    backend: local

@@ -1,5 +1,6 @@
 export type ModelStatus = {
   id: string;
+  backend?: string;
   connected: boolean;
   reason?: string;
 };

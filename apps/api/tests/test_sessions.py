@@ -17,6 +17,7 @@ import apps.api.routes.sessions as sessions_routes
 import apps.unified.main as unified_main
 import opentalking.runtime.task_consumer as task_consumer
 from opentalking.core.in_memory_redis import InMemoryRedis
+from opentalking.core.model_config import clear_model_config_cache
 from opentalking.core.redis_keys import FLASHTALK_QUEUE_STATUS
 from opentalking.core.session_store import set_session_state
 from opentalking.pipeline.recording.recording import append_flashtalk_frames
@@ -167,6 +168,35 @@ def test_create_session_rejects_unconnected_model() -> None:
             detail = response.json()["detail"]
             assert unsupported in detail
             assert "not yet supported" in detail
+
+
+def test_create_session_rejects_local_model_with_missing_adapter(
+    tmp_path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config_file = tmp_path / "opentalking.yaml"
+    config_file.write_text(
+        """
+models:
+  wav2lip:
+    backend: local
+""",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("OPENTALKING_CONFIG_FILE", str(config_file))
+    clear_model_config_cache()
+
+    with TestClient(unified_main.create_app()) as client:
+        response = client.post(
+            "/sessions",
+            json={"avatar_id": "anchor", "model": "wav2lip"},
+        )
+
+    assert response.status_code == 400, response.json()
+    detail = response.json()["detail"]
+    assert "wav2lip" in detail
+    assert "not yet supported" in detail
+    clear_model_config_cache()
 
 
 @pytest.mark.parametrize("tts_provider", ["dashscope", "cosyvoice", "sambert"])

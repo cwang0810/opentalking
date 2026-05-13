@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from opentalking.core.model_config import clear_model_config_cache, get_model_config
+from opentalking.core.model_config import clear_model_config_cache, get_model_backend, get_model_config
 
 
 @pytest.fixture(autouse=True)
@@ -15,6 +15,7 @@ def _clear_model_config(monkeypatch: pytest.MonkeyPatch):
         "OPENTALKING_MUSETALK_CONTEXT_MS",
         "FLASHTALK_FRAME_NUM",
         "OPENTALKING_FLASHTALK_FRAME_NUM",
+        "OPENTALKING_WAV2LIP_BACKEND",
     ):
         monkeypatch.delenv(name, raising=False)
     clear_model_config_cache()
@@ -104,3 +105,41 @@ models:
 
     with pytest.raises(ValueError, match="t5_quant"):
         get_model_config("flashtalk")
+
+
+def test_get_model_backend_uses_builtin_compat_defaults(
+    tmp_path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("OPENTALKING_CONFIG_FILE", str(tmp_path / "missing.yaml"))
+    clear_model_config_cache()
+
+    assert get_model_backend("mock") == "mock"
+    assert get_model_backend("quicktalk") == "local"
+    assert get_model_backend("flashhead") == "direct_ws"
+    assert get_model_backend("wav2lip") == "omnirt"
+    assert get_model_backend("musetalk") == "omnirt"
+
+
+def test_get_model_backend_accepts_project_and_env_overrides(
+    tmp_path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    config_file = tmp_path / "opentalking.yaml"
+    config_file.write_text(
+        """
+models:
+  wav2lip:
+    backend: local
+""",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("OPENTALKING_CONFIG_FILE", str(config_file))
+    clear_model_config_cache()
+
+    assert get_model_backend("wav2lip") == "local"
+
+    monkeypatch.setenv("OPENTALKING_WAV2LIP_BACKEND", "direct_ws")
+    clear_model_config_cache()
+
+    assert get_model_backend("wav2lip") == "direct_ws"
