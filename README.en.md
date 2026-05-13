@@ -20,12 +20,12 @@
 
 <p align="center">
   <a href="#capabilities">Capabilities</a> ·
+  <a href="#community">Community</a> ·
   <a href="#demo-videos">Demo videos</a> ·
   <a href="#architecture">Architecture</a> ·
   <a href="#quickstart">Quickstart</a> ·
   <a href="#roadmap">Roadmap</a> ·
   <a href="#documentation">Documentation</a> ·
-  <a href="#community">Community</a> ·
   <a href="#acknowledgements">Acknowledgements</a>
 </p>
 
@@ -54,6 +54,18 @@ OpenTalking focuses on the **pipeline orchestration layer** and supports both ex
 - **OpenAI-compatible LLM**: works with DashScope, Ollama, vLLM, DeepSeek, and any other OpenAI-compatible endpoint.
 - **Multiple deployment shapes**: single-process demo, distributed API + Worker mode, and Docker Compose.
 - **QuickTalk adapter**: built-in `quicktalk` model registration, Avatar validation, realtime render queue, audio-video sync, and benchmark CLI.
+
+## Community
+
+Join our QQ group to discuss real-time digital humans, FlashTalk, OmniRT, model deployment, and product use cases.
+
+<p align="center">
+  <img src="docs/assets/images/qq_group_qrcode.png" alt="AI Digital Human QQ group QR code" width="280">
+</p>
+
+<p align="center">
+  <b>AI Digital Human QQ group</b> · ID: <code>1103327938</code>
+</p>
 
 ## Digital-human service interface
 
@@ -363,18 +375,6 @@ bash scripts/deploy_ascend_910b.sh
 - [Deployment](docs/en/user-guide/deployment.md) (Docker Compose, distributed deployment)
 - [Model adapters](docs/en/developer-guide/model-adapter.md)
 - [Contributing](CONTRIBUTING.md) (dev environment, CLI tools, ruff / mypy / pytest)
-
-## Community
-
-Join our QQ group to discuss real-time digital humans, FlashTalk, OmniRT, model deployment, and product use cases.
-
-<p align="center">
-  <img src="docs/assets/images/qq_group_qrcode.png" alt="AI Digital Human QQ group QR code" width="280">
-</p>
-
-<p align="center">
-  <b>AI Digital Human QQ group</b> · ID: <code>1103327938</code>
-</p>
 
 ## Acknowledgements
 
