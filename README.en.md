@@ -6,6 +6,7 @@
 
 <p align="center">
   <a href="./README.md">中文</a> ·
+  <a href="https://datascale-ai.github.io/opentalking/">📖 Documentation</a> ·
   <a href="https://github.com/datascale-ai/opentalking">GitHub</a>
 </p>
 
@@ -113,7 +114,7 @@ These demo videos show how the OpenTalking pipeline behaves across different rea
 
 ## Architecture
 
-![OpenTalking Architecture](docs/assets/images/opentalking_architecture.png)
+![OpenTalking Current Code Architecture](docs/assets/images/opentalking_architecture_en.png)
 
 ## Project layout
 
@@ -146,7 +147,7 @@ opentalking/
 
 ## Quickstart
 
-OpenTalking's **orchestration layer** (API + Worker + frontend) and the **inference service** ([OmniRT](https://github.com/datascale-ai/omnirt)) deploy independently—they can run on the same host or on different hosts. The three paths below are organised by *what you want to do*. For Docker, see [docs/deployment.md](docs/deployment.en.md).
+OpenTalking's **orchestration layer** (API + Worker + frontend) and the selected **synthesis backend** (`mock`, `local`, `direct_ws`, or [OmniRT](https://github.com/datascale-ai/omnirt)) deploy independently. The three paths below are organised by *what you want to do*. For Docker, see [Deployment](docs/en/user-guide/deployment.md), and for per-model weight downloads and startup commands see [Models](docs/en/model-deployment/index.md).
 
 ### Step 0 (shared): install the orchestration layer
 
@@ -213,7 +214,9 @@ bash scripts/quickstart/stop_all.sh --api-port 8010 --web-port 5180
 **Goal**: iterate on Avatar assets, validate model adapters, run real wav2lip / musetalk / flashtalk models.
 **How**: choose a per-model backend. Lightweight models can run locally or behind a direct single-model WebSocket; [OmniRT](https://github.com/datascale-ai/omnirt) remains the compatible default for remote validation.
 
-For a quick real-model smoke test, start Wav2Lip OmniRT first:
+For a quick real-model smoke test today, start the Wav2Lip OmniRT compatibility path
+first. Wav2Lip is a lightweight model, so the recommended deployment direction is a
+local or direct single-model backend once the local adapter is installed:
 
 ```bash
 cd "$DIGITAL_HUMAN_HOME/opentalking"
@@ -257,7 +260,7 @@ bash scripts/quickstart/status.sh --api-port 8010 --web-port 5180
 bash scripts/quickstart/stop_all.sh --api-port 8010 --web-port 5180
 ```
 
-Avatar asset format: see [docs/avatar-format.md](docs/avatar-format.md).
+Avatar asset format: see [Avatar Format](docs/en/user-guide/avatar-format.md).
 
 ### Path 3: High-quality deployment
 
@@ -282,7 +285,9 @@ opentalking-worker &
 cd apps/web && npm ci && npm run build
 ```
 
-Avatar manifest, inference endpoint mapping, hardware profiles: see [docs/configuration.md](docs/configuration.md) and [docs/hardware.md](docs/hardware.md).
+Avatar manifest, inference endpoint mapping, and hardware profiles: see
+[Configuration](docs/en/user-guide/configuration.md) and
+[Models](docs/en/model-deployment/index.md).
 
 ### Three paths at a glance
 
@@ -298,7 +303,7 @@ Avatar manifest, inference endpoint mapping, hardware profiles: see [docs/config
 | Model | Input | OpenTalking integration | Recommended path |
 | --- | --- | --- | --- |
 | `mock` | reference image | Built-in static frames | Path 1 |
-| `wav2lip` | frames + audio | Pluggable lightweight lip-sync backend | Path 2 |
+| `wav2lip` | frames + audio | Pluggable lightweight lip-sync backend; local/direct backend preferred, OmniRT kept as compatibility path | Path 2 |
 | `musetalk` | full frames + audio | Pluggable lightweight talking-head backend | Path 2 |
 | `quicktalk` | template video + audio | Local realtime talking-head adapter with Worker caching and `/chat` | QuickTalk realtime path |
 | `soulx-flashtalk-14b` | portrait + audio | OmniRT high-quality FlashTalk | Path 3 |
@@ -320,7 +325,7 @@ Avatar manifest, inference endpoint mapping, hardware profiles: see [docs/config
   Lightweight models, single-card realtime configs, end-to-end benchmarks for RTX 3090 / 4090.
 
 - [ ] **High-quality private deployment(in progress)**  
-  Enterprise private deployment with external OmniRT inference, capacity scheduling, health checks, production monitoring; Ascend 910B and similar enterprise GPU / NPU paths in progress.
+  Enterprise private deployment with pluggable synthesis backends, OmniRT capacity scheduling for heavyweight models, health checks, production monitoring; Ascend 910B and similar enterprise GPU / NPU paths in progress.
 
 - [ ] **Custom characters and voices**  
   Character config, built-in voice selection, reference audio upload, natural-language voice description, and OmniRT-driven voice synthesis.
@@ -333,13 +338,12 @@ Avatar manifest, inference endpoint mapping, hardware profiles: see [docs/config
 
 ## Documentation
 
-- [Quickstart](docs/quickstart.en.md)
-- [FlashTalk + OmniRT deployment](docs/flashtalk-omnirt.en.md)
-- [Architecture](docs/architecture.md)
-- [Configuration](docs/configuration.md)
-- [Deployment](docs/deployment.md) (Docker Compose, distributed deployment)
-- [Hardware guide](docs/hardware.md)
-- [Model adapters](docs/model-adapter.md)
+- [Quickstart](docs/en/user-guide/quickstart.md)
+- [Models](docs/en/model-deployment/index.md) (weights, domestic mirrors, startup, verification)
+- [Architecture](docs/en/developer-guide/architecture.md)
+- [Configuration](docs/en/user-guide/configuration.md)
+- [Deployment](docs/en/user-guide/deployment.md) (Docker Compose, distributed deployment)
+- [Model adapters](docs/en/developer-guide/model-adapter.md)
 - [Contributing](CONTRIBUTING.md) (dev environment, CLI tools, ruff / mypy / pytest)
 
 ## Acknowledgements

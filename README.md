@@ -6,6 +6,7 @@
 
 <p align="center">
   <a href="./README.en.md">English</a> ·
+  <a href="https://datascale-ai.github.io/opentalking/">📖 文档站</a> ·
   <a href="https://github.com/datascale-ai/opentalking">GitHub</a>
 </p>
 
@@ -113,7 +114,7 @@ OpenTalking 提供 Web 服务界面，用于管理数字人对话链路：可以
 
 ## 系统架构
 
-![OpenTalking Architecture](docs/assets/images/opentalking_architecture.png)
+![OpenTalking 当前代码架构图](docs/assets/images/opentalking_architecture_zh.png)
 
 ## 项目结构
 
@@ -241,7 +242,7 @@ OPENTALKING_TTS_PROVIDER=edge
 OPENTALKING_TTS_VOICE=zh-CN-XiaoxiaoNeural
 ```
 
-真实模型模式按每个模型的 `backend` 配置选择推理入口。默认兼容路径中 `wav2lip`、`musetalk`、`flashtalk` 仍可通过 `--omnirt` 指定 OmniRT；轻量模型也可以切到 `local` 或 `direct_ws`。
+真实模型模式按每个模型的 `backend` 配置选择推理入口。`wav2lip` 这类轻量模型的推荐方向是本地或单模型直连 backend；当前默认兼容路径中 `wav2lip`、`musetalk`、`flashtalk` 仍可通过 `--omnirt` 指定 OmniRT，待本地 adapter 补齐后可切到 `local`。
 
 > 注意：`mock / 无驱动模式` 是本地自测模式，不需要 OmniRT；真实模型卡片会根据所选 backend 状态显示 **已连接** 或 **未连接**。`edge` TTS 不需要 key。`DASHSCOPE_API_KEY` 只在使用实时 STT 时需要。
 
@@ -387,7 +388,10 @@ SoulX-FlashTalk 的推理代码不是模型权重。推荐的 Ascend 910B 路径
 - SoulX FlashTalk 14B: https://huggingface.co/Soul-AILab/SoulX-FlashTalk-14B
 - Chinese wav2vec2: https://huggingface.co/TencentGameMate/chinese-wav2vec2-base
 
-### 5. 启动 Wav2Lip OmniRT
+### 5. 启动 Wav2Lip 兼容路径
+
+Wav2Lip 属于轻量模型，推荐部署方向是本地或单模型直连 backend；当前 README 中的命令
+使用 OmniRT 作为可直接跑通的兼容路径，待本地 adapter 补齐后可切换到 `backend: local`。
 
 CUDA GPU:
 
@@ -584,13 +588,12 @@ export OMNIRT_WAV2LIP_MAX_LONG_EDGE=832
 
 ## 文档
 
-- [快速开始](docs/quickstart.md)
-- [FlashTalk + OmniRT 部署](docs/flashtalk-omnirt.md)
-- [架构说明](docs/architecture.md)
-- [配置说明](docs/configuration.md)
-- [部署文档](docs/deployment.md)（Docker Compose、分布式部署）
-- [硬件指南](docs/hardware.md)
-- [模型适配](docs/model-adapter.md)
+- [快速开始](docs/zh/user-guide/quickstart.md)
+- [模型](docs/zh/model-deployment/index.md)（权重下载、国内源、启动、验证）
+- [架构说明](docs/zh/developer-guide/architecture.md)
+- [配置说明](docs/zh/user-guide/configuration.md)
+- [部署文档](docs/zh/user-guide/deployment.md)（Docker Compose、分布式部署）
+- [模型适配](docs/zh/developer-guide/model-adapter.md)
 - [贡献指南](CONTRIBUTING.md)（开发环境、CLI 工具、ruff / mypy / pytest）
 
 ## 致谢
