@@ -4,6 +4,8 @@ set -euo pipefail
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd -- "$script_dir/../.." && pwd)"
 default_home="$(cd -- "$repo_root/.." && pwd)"
+# shellcheck disable=SC1091
+source "$script_dir/_helpers.sh"
 
 env_file="${OPENTALKING_QUICKSTART_ENV:-$script_dir/env}"
 if [[ -f "$env_file" ]]; then
@@ -90,16 +92,17 @@ if [[ -f "$pid_file" ]]; then
   rm -f "$pid_file"
 fi
 
-if ss -ltn "sport = :$api_port" 2>/dev/null | grep -q LISTEN; then
+if quickstart_port_in_use "$api_port"; then
   echo "OpenTalking API port $api_port is already in use." >&2
   echo "Stop the existing service first, or choose another --api-port." >&2
-  ss -ltnp "sport = :$api_port" >&2 || true
+  quickstart_describe_port "$api_port" >&2 || true
   exit 1
 fi
 
 if [[ ! -f "$repo_root/.venv/bin/activate" ]]; then
   echo "Missing virtualenv: $repo_root/.venv" >&2
-  echo "Run this first: cd \"$repo_root\" && uv sync && uv pip install -e \".[dev]\"" >&2
+  echo "Run this first: cd \"$repo_root\" && uv sync --extra dev --python 3.11" >&2
+  echo "Fallback: python3 -m venv .venv && source .venv/bin/activate && pip install --index-url https://pypi.tuna.tsinghua.edu.cn/simple -e \".[dev]\"" >&2
   exit 1
 fi
 

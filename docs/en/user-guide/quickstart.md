@@ -12,7 +12,7 @@ synthesized video frames delivered over WebRTC.
 
 | Component | Minimum version | Purpose |
 |-----------|-----------------|---------|
-| Python | 3.9 (3.11 recommended) | Server runtime |
+| Python | 3.10+ (3.11 recommended) | Server runtime |
 | Node.js | 18 | React frontend toolchain |
 | ffmpeg | Recent stable release | Audio decoding for the TTS pipeline |
 | DashScope API key | — | Required for the default language model (`qwen-flash`) and speech recognition (`paraformer-realtime-v2`). Apply at [bailian.console.aliyun.com](https://bailian.console.aliyun.com). |
@@ -26,12 +26,25 @@ only necessary when switching to a real talking-head model in [Step 5](#5-enable
 git clone https://github.com/datascale-ai/opentalking.git
 cd opentalking
 
-python3 -m venv .venv
+uv sync --extra dev --python 3.11
 source .venv/bin/activate
-
-pip install -e ".[dev]"
 cp .env.example .env
 ```
+
+If you need the compatibility fallback instead:
+
+```bash title="terminal"
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --index-url https://pypi.tuna.tsinghua.edu.cn/simple -e ".[dev]"
+cp .env.example .env
+```
+
+Notes:
+
+- The lockfile is validated with Python 3.11.
+- When PyAV resolves to a wheel, only runtime `ffmpeg` is required.
+- If you move to an unvalidated Python or PyAV combination and trigger a source build, you will also need `ffmpeg 7`, `pkg-config`, and a C compiler.
 
 ## 2. Configure required credentials
 
@@ -55,7 +68,7 @@ DashScope SDK used for speech recognition.
 ## 3. Start the services
 
 ```bash title="terminal"
-bash scripts/quickstart/start_all.sh --mock
+bash scripts/quickstart/start_mock.sh
 ```
 
 The script starts two processes:
@@ -129,7 +142,8 @@ documented in [Models](../model-deployment/index.md). The shortest paths are:
 
 === "Ascend 910B"
 
-    NPU evaluation is best done from source on the host CANN environment. See
+    NPU evaluation is best done from source on the host CANN environment. Source
+    CANN first, then run `bash scripts/deploy_ascend_910b.sh`. See
     [From source → Ascend 910B](install-from-source.md#ascend-910b).
 
 ## 6. Verify and shut down
@@ -156,7 +170,7 @@ The following table lists common installation issues and their resolutions.
 | `ffmpeg: not found` during TTS decoding | Install ffmpeg. On macOS: `brew install ffmpeg`. On Debian/Ubuntu: `apt install ffmpeg`. |
 | Language model returns HTTP 401 | Ensure `OPENTALKING_LLM_API_KEY` and `DASHSCOPE_API_KEY` are both set to the same DashScope key. |
 | Browser reports WebRTC is unavailable | Use a Chromium-based browser. Safari requires `OPENTALKING_API_HOST=127.0.0.1` and a matching CORS origin. |
-| Port 8000 is already in use | Override the bound ports: `bash scripts/quickstart/start_all.sh --mock --api-port 8010 --web-port 5180`. |
+| Port 8000 is already in use | Override the bound ports: `bash scripts/quickstart/start_mock.sh --api-port 8010 --web-port 5180`. |
 | OmniRT exits during startup | Inspect the log file referenced in the OmniRT script output (typically `~/logs/omnirt-wav2lip.log`). |
 
 ## Next steps

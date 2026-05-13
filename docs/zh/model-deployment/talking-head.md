@@ -47,9 +47,8 @@ $DIGITAL_HUMAN_HOME/
 ```bash title="终端"
 git clone https://github.com/datascale-ai/opentalking.git
 cd opentalking
-python3 -m venv .venv
+uv sync --extra dev --python 3.11
 source .venv/bin/activate
-pip install -e ".[dev]"
 cp .env.example .env
 ```
 
@@ -65,14 +64,14 @@ DASHSCOPE_API_KEY=<dashscope-api-key>
 国际网络环境可直接使用 Hugging Face：
 
 ```bash title="终端"
-pip install -U "huggingface_hub[cli]"
+uv pip install -U "huggingface_hub[cli]"
 hf auth login  # 可选，私有或 gated 模型需要登录
 ```
 
 国内环境可优先使用 ModelScope 中已经同步的模型：
 
 ```bash title="终端"
-pip install -U modelscope
+uv pip install -U modelscope
 modelscope login  # 可选
 ```
 
@@ -186,7 +185,7 @@ models:
 cd "$DIGITAL_HUMAN_HOME"
 git clone https://github.com/datascale-ai/omnirt.git
 cd omnirt
-uv sync --extra server
+uv sync --extra server --python 3.11
 ```
 
 ### 4. 通过 OmniRT 启动 Wav2Lip
@@ -202,7 +201,7 @@ Ascend：
 
 ```bash title="终端"
 source /usr/local/Ascend/ascend-toolkit/set_env.sh
-bash scripts/quickstart/start_omnirt_wav2lip.sh --device npu
+bash scripts/deploy_ascend_910b.sh
 ```
 
 ### 5. 启动 OpenTalking

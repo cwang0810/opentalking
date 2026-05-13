@@ -4,6 +4,8 @@ set -euo pipefail
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd -- "$script_dir/../.." && pwd)"
 default_home="$(cd -- "$repo_root/.." && pwd)"
+# shellcheck disable=SC1091
+source "$script_dir/_helpers.sh"
 
 env_file="${OPENTALKING_QUICKSTART_ENV:-$script_dir/env}"
 if [[ -f "$env_file" ]]; then
@@ -101,7 +103,11 @@ if [[ ! -d "$omnirt_dir" ]]; then
 fi
 if [[ ! -f "$omnirt_dir/.venv/bin/activate" ]]; then
   echo "Missing OmniRT virtualenv: $omnirt_dir/.venv" >&2
-  echo "Run this first: cd \"$omnirt_dir\" && uv sync --extra server" >&2
+  if uv_bin="$(quickstart_resolve_uv)"; then
+    echo "Run this first: cd \"$omnirt_dir\" && \"$uv_bin\" sync --extra server --python 3.11" >&2
+  else
+    echo "Install uv first, then run: cd \"$omnirt_dir\" && uv sync --extra server --python 3.11" >&2
+  fi
   exit 1
 fi
 
@@ -132,16 +138,17 @@ echo "  log:     $log_file"
   source .venv/bin/activate
 
   if [[ "$install_deps" == "1" ]]; then
+    uv_bin="$(quickstart_require_uv "OmniRT dependency installation")"
     if [[ "$backend" == "cuda" ]]; then
       if grep -Eq '^[[:space:]]*wav2lip-cuda[[:space:]]*=' pyproject.toml; then
-        uv sync --extra server --extra wav2lip-cuda
+        "$uv_bin" sync --extra server --extra wav2lip-cuda --python 3.11
       else
         echo "OmniRT extra 'wav2lip-cuda' is not defined; falling back to requirements-wav2lip.txt"
-        uv sync --extra server
-        uv pip install -r model_backends/wav2lip/requirements-wav2lip.txt
+        "$uv_bin" sync --extra server --python 3.11
+        "$uv_bin" pip install -r model_backends/wav2lip/requirements-wav2lip.txt
       fi
     else
-      uv pip install -r model_backends/wav2lip/requirements-wav2lip-ascend.txt
+      "$uv_bin" pip install -r model_backends/wav2lip/requirements-wav2lip-ascend.txt
     fi
   fi
 

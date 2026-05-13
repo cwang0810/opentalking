@@ -19,7 +19,7 @@ external inference services should be wired together.
 
 Prepare these before choosing a topology:
 
-- Python 3.10 or later, Node.js 18 or later, Redis 7, and FFmpeg.
+- Python 3.10 or later (3.11 recommended), Node.js 18 or later, Redis 7, and FFmpeg.
 - A completed `.env` copied from `.env.example`.
 - LLM/STT/TTS credentials configured as described in [Configuration](configuration.md).
 - Avatar assets and model backend configuration selected from [Models](../model-deployment/index.md).
@@ -36,14 +36,21 @@ container layer between the process and the host.
 ```bash title="terminal"
 git clone https://github.com/datascale-ai/opentalking.git
 cd opentalking
-python3 -m venv .venv
+uv sync --extra dev --python 3.11
 source .venv/bin/activate
-pip install -e .
 
 cd apps/web
 npm ci
 cd ../..
 cp .env.example .env
+```
+
+If you need the compatibility fallback instead:
+
+```bash title="terminal"
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --index-url https://pypi.tuna.tsinghua.edu.cn/simple -e ".[dev]"
 ```
 
 Set the minimum runtime configuration:
@@ -265,13 +272,13 @@ the CANN environment:
 
 ```bash title="terminal"
 source /usr/local/Ascend/ascend-toolkit/set_env.sh
-source .venv/bin/activate
 bash scripts/deploy_ascend_910b.sh
 ```
 
 Prerequisites:
 
 - CANN 8.0 or later.
+- Prefer setting `UV_INDEX_URL` / `PIP_INDEX_URL` to a domestic mirror before installing OpenTalking and OmniRT in China-friendly environments.
 - OmniRT checked out alongside OpenTalking when using `backend: omnirt`.
 - Model checkpoints under `$DIGITAL_HUMAN_HOME/models/`.
 

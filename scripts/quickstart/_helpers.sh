@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+
+quickstart_resolve_uv() {
+  local candidate=""
+
+  if candidate="$(command -v uv 2>/dev/null)"; then
+    printf '%s\n' "$candidate"
+    return 0
+  fi
+
+  for candidate in \
+    "/snap/bin/uv" \
+    "$HOME/.local/bin/uv" \
+    "$HOME/bin/uv" \
+    "/usr/local/bin/uv" \
+    "/opt/homebrew/bin/uv"
+  do
+    if [[ -x "$candidate" ]]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+quickstart_require_uv() {
+  local purpose="${1:-this command}"
+  local uv_bin=""
+
+  if uv_bin="$(quickstart_resolve_uv)"; then
+    printf '%s\n' "$uv_bin"
+    return 0
+  fi
+
+  echo "Unable to find uv for $purpose." >&2
+  echo "Install uv or add it to PATH, then retry." >&2
+  return 1
+}
+
+quickstart_port_in_use() {
+  local port="$1"
+
+  if command -v ss >/dev/null 2>&1; then
+    ss -ltn "sport = :$port" 2>/dev/null | grep -q LISTEN
+    return $?
+  fi
+
+  if command -v lsof >/dev/null 2>&1; then
+    lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1
+    return $?
+  fi
+
+  if command -v netstat >/dev/null 2>&1; then
+    netstat -an 2>/dev/null | grep -E "[\.:]$port[[:space:]].*(LISTEN|LISTENING)" >/dev/null
+    return $?
+  fi
+
+  return 1
+}
+
+quickstart_describe_port() {
+  local port="$1"
+
+  if command -v ss >/dev/null 2>&1; then
+    ss -ltnp "sport = :$port" 2>/dev/null || true
+    return 0
+  fi
+
+  if command -v lsof >/dev/null 2>&1; then
+    lsof -nP -iTCP:"$port" -sTCP:LISTEN || true
+    return 0
+  fi
+
+  if command -v netstat >/dev/null 2>&1; then
+    netstat -anv 2>/dev/null | grep -E "[\.:]$port[[:space:]].*(LISTEN|LISTENING)" || true
+    return 0
+  fi
+
+  return 1
+}

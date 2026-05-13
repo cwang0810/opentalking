@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License"></a>
-  <img src="https://img.shields.io/badge/Python-3.9%2B-brightgreen.svg" alt="Python">
+  <img src="https://img.shields.io/badge/Python-3.10%2B-brightgreen.svg" alt="Python">
   <img src="https://img.shields.io/badge/React-18-61dafb.svg" alt="React">
   <img src="https://img.shields.io/badge/FastAPI-009688.svg" alt="FastAPI">
   <img src="https://img.shields.io/badge/WebRTC-realtime-orange.svg" alt="WebRTC">
@@ -156,12 +156,25 @@ OpenTalking's **orchestration layer** (API + Worker + frontend) and the selected
 
 ```bash
 git clone https://github.com/datascale-ai/opentalking.git && cd opentalking
-python3 -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
+uv sync --extra dev --python 3.11
+source .venv/bin/activate
 cp .env.example .env
 ```
 
-Requirements: Python ≥ 3.10, Node.js ≥ 18, FFmpeg.
+Requirements: Python ≥ 3.10 (3.11 recommended), Node.js ≥ 18, FFmpeg.
+
+If `uv` is not available in your environment, use the compatibility fallback instead:
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install --index-url https://pypi.tuna.tsinghua.edu.cn/simple -e ".[dev]"
+```
+
+Notes:
+
+- The lockfile is validated with Python 3.11.
+- When PyAV resolves to a prebuilt wheel, only runtime `ffmpeg` is required.
+- If you intentionally move to an unvalidated Python or PyAV combination and trigger a source build, you will also need `ffmpeg 7`, `pkg-config`, and a C compiler.
 
 > Run `opentalking-doctor` any time to see what's missing.
 
@@ -220,6 +233,11 @@ bash scripts/quickstart/stop_all.sh --api-port 8010 --web-port 5180
 For a quick real-model smoke test today, start the Wav2Lip OmniRT compatibility path
 first. Wav2Lip is a lightweight model, so the recommended deployment direction is a
 local or direct single-model backend once the local adapter is installed:
+
+1. Install OpenTalking with Python 3.11.
+2. Install OmniRT in the sibling `omnirt/` checkout with `uv sync --extra server --python 3.11`.
+3. Place `wav2lip384.pth` and `s3fd.pth` under `$OMNIRT_MODEL_ROOT/wav2lip/`.
+4. Start the OmniRT helper and then start OpenTalking with `--omnirt`.
 
 ```bash
 cd "$DIGITAL_HUMAN_HOME/opentalking"
@@ -291,6 +309,14 @@ cd apps/web && npm ci && npm run build
 Avatar manifest, inference endpoint mapping, and hardware profiles: see
 [Configuration](docs/en/user-guide/configuration.md) and
 [Models](docs/en/model-deployment/index.md).
+
+For Ascend 910B, use the host CANN environment and the thin deployment wrapper:
+
+```bash
+source /usr/local/Ascend/ascend-toolkit/set_env.sh
+cd "$DIGITAL_HUMAN_HOME/opentalking"
+bash scripts/deploy_ascend_910b.sh
+```
 
 ### Three paths at a glance
 

@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License"></a>
-  <img src="https://img.shields.io/badge/Python-3.9%2B-brightgreen.svg" alt="Python">
+  <img src="https://img.shields.io/badge/Python-3.10%2B-brightgreen.svg" alt="Python">
   <img src="https://img.shields.io/badge/React-18-61dafb.svg" alt="React">
   <img src="https://img.shields.io/badge/FastAPI-009688.svg" alt="FastAPI">
   <img src="https://img.shields.io/badge/WebRTC-realtime-orange.svg" alt="WebRTC">
@@ -159,6 +159,7 @@ OpenTalking 是主入口，负责 Web、API、LLM、TTS、WebRTC、Avatar 资产
 OpenTalking:
 
 - Python 3.10+
+- 推荐使用 Python 3.11
 - uv
 - Node.js 18+
 - FFmpeg
@@ -183,6 +184,12 @@ uv包下载慢时可以先设置国内镜像源：
 export UV_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
 # 或：
 # export UV_INDEX_URL=https://mirrors.aliyun.com/pypi/simple
+```
+
+如果需要走 `pip` fallback，可直接使用清华镜像：
+
+```bash
+export PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 
 设置一个工作目录，后续所有 terminal 保持一致：
@@ -220,12 +227,26 @@ cd "$DIGITAL_HUMAN_HOME"
 git clone https://github.com/datascale-ai/opentalking.git
 cd opentalking
 
-# 安装Python依赖
-uv sync --extra dev
+# 安装 Python 依赖（推荐）
+uv sync --extra dev --python 3.11
 source .venv/bin/activate
 
 cp .env.example .env
 ```
+
+如果当前环境不便使用 `uv`，再使用兼容 fallback：
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --index-url https://pypi.tuna.tsinghua.edu.cn/simple -e ".[dev]"
+```
+
+说明：
+
+- 当前锁文件按 Python 3.11 验证。
+- 命中 PyAV wheel 时，只需要运行时 `ffmpeg`。
+- 如果你主动切到未验证的 Python / PyAV 组合并触发源码构建，则还需要 `ffmpeg 7`、`pkg-config` 和 C 编译器。
 
 > 不用担心.env中设置的密钥/私有配置，其不会提交到 git。
 
@@ -293,7 +314,7 @@ cd "$DIGITAL_HUMAN_HOME"
 git clone https://github.com/datascale-ai/omnirt.git
 cd omnirt
 
-uv sync --extra server
+uv sync --extra server --python 3.11
 source .venv/bin/activate
 uv pip install -U "huggingface_hub[cli]"
 ```
@@ -308,10 +329,11 @@ https://www.nvidia.cn/drivers/
 https://developer.nvidia.com/cuda-toolkit-archive
 ```
 
-NPU环境请先安装驱动（如果已安装请忽略）
+NPU 环境请先安装驱动与 CANN（如果已安装请忽略）
 
 ```
-# 待补充
+source /usr/local/Ascend/ascend-toolkit/set_env.sh
+npu-smi info
 ```
 
 ### 4. 下载模型权重
@@ -403,20 +425,15 @@ cd "$DIGITAL_HUMAN_HOME/opentalking"
 bash scripts/quickstart/start_omnirt_wav2lip.sh --device cuda
 ```
 
-Ascend 910B NPU:
-
-启动 NPU 服务前先 source CANN
+Ascend 910B NPU：
 
 ```bash
 source /usr/local/Ascend/ascend-toolkit/set_env.sh
-```
-
-> 如果你的 CANN 路径不同，把上面的路径替换成实际的 `set_env.sh`。
-
-```bash
 cd "$DIGITAL_HUMAN_HOME/opentalking"
-bash scripts/quickstart/start_omnirt_wav2lip.sh --device npu
+bash scripts/deploy_ascend_910b.sh
 ```
+
+> 如果你的 CANN 路径不同，先设置 `ASCEND_SET_ENV=/real/path/to/set_env.sh`。
 
 验证：
 
