@@ -15,6 +15,7 @@ from opentalking.core.redis_keys import TASK_QUEUE
 from opentalking.core.session_store import set_session_state
 from opentalking.runtime.bus import publish_event
 from opentalking.pipeline.session.runner import SessionRunner
+from opentalking.providers.synthesis.backends import resolve_model_backend
 
 log = logging.getLogger(__name__)
 
@@ -87,20 +88,15 @@ def _create_runner(
     sid = str(task["session_id"])
     avatar_id = str(task["avatar_id"])
     settings = get_settings()
+    backend = resolve_model_backend(model, settings)
 
     # Mock mode: pick the in-process mock client (echoes reference image).
     # Selected explicitly when the user picks model=mock in the UI.
-    mock_mode = model == "mock"
+    mock_mode = backend.backend == "mock"
 
-    # Audio2video models served by OmniRT (or a FlashTalk-compatible WS server)
-    # all speak the same binary protocol. flashhead has its own protocol and
-    # stays on its dedicated track.
-    OMNIRT_MODELS = {"flashtalk", "musetalk", "wav2lip"}
-
-    if mock_mode or model in OMNIRT_MODELS or model == "flashhead":
+    if mock_mode or backend.backend in {"omnirt", "direct_ws"}:
         from opentalking.pipeline.speak.synthesis_runner import FlashTalkRunner
 
-        flashtalk_mode = None
         flashtalk_client = None
         flashtalk_ws_url: str | None = None
 
@@ -113,7 +109,7 @@ def _create_runner(
             from opentalking.providers.synthesis.flashhead import FlashHeadWSClient
 
             flashtalk_client = FlashHeadWSClient(
-                ws_url=settings.flashhead_ws_url,
+                ws_url=backend.ws_url or settings.flashhead_ws_url,
                 model=settings.flashhead_model,
                 config={
                     "fps": int(settings.flashhead_fps),
@@ -126,16 +122,17 @@ def _create_runner(
             )
             effective_model = "flashhead"
         else:
-            # Resolve WS URL via OmniRT endpoint (path-based per model) with a
-            # legacy fallback to OPENTALKING_FLASHTALK_WS_URL when only
-            # flashtalk needs servicing.
-            from opentalking.providers.synthesis.omnirt import (
-                auth_headers as omnirt_auth_headers,
-                resolve_synthesis_ws_url,
-            )
+            from opentalking.providers.synthesis.omnirt import auth_headers as omnirt_auth_headers
             from opentalking.providers.synthesis.flashtalk.ws_client import FlashTalkWSClient
 
-            flashtalk_ws_url = resolve_synthesis_ws_url(model, settings)
+            if backend.backend == "direct_ws":
+                flashtalk_ws_url = backend.ws_url
+            else:
+                # Resolve WS URL via OmniRT endpoint (path-based per model) with
+                # the legacy FlashTalk URL fallback when OMNIRT_ENDPOINT is unset.
+                from opentalking.providers.synthesis.omnirt import resolve_synthesis_ws_url
+
+                flashtalk_ws_url = resolve_synthesis_ws_url(model, settings)
             headers = omnirt_auth_headers(settings)
             if headers:
                 # Prebuild client so we can pass auth headers; FlashTalkRunner

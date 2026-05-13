@@ -78,6 +78,17 @@ _ENV_OVERRIDES: dict[str, dict[str, tuple[str, ...]]] = {
     },
 }
 
+SUPPORTED_MODEL_BACKENDS = frozenset({"mock", "local", "direct_ws", "omnirt"})
+
+_DEFAULT_MODEL_BACKENDS: dict[str, str] = {
+    "mock": "mock",
+    "quicktalk": "local",
+    "flashhead": "direct_ws",
+    "flashtalk": "omnirt",
+    "musetalk": "omnirt",
+    "wav2lip": "omnirt",
+}
+
 
 def _load_yaml(path: Path) -> dict[str, Any]:
     raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
@@ -245,6 +256,22 @@ def _env_model_config(model_type: str, defaults: dict[str, Any]) -> dict[str, An
     return overrides
 
 
+def _env_model_backend(model_type: str) -> str | None:
+    env_name = f"OPENTALKING_{model_type.upper().replace('-', '_')}_BACKEND"
+    raw = os.environ.get(env_name)
+    if raw is None:
+        return None
+    backend = raw.strip().lower()
+    if not backend:
+        return None
+    if backend not in SUPPORTED_MODEL_BACKENDS:
+        raise ValueError(
+            f"Invalid {env_name}: {backend!r}. "
+            f"Expected one of {sorted(SUPPORTED_MODEL_BACKENDS)}."
+        )
+    return backend
+
+
 @lru_cache(maxsize=None)
 def get_model_config(model_type: str) -> dict[str, Any]:
     model_type = model_type.strip().lower()
@@ -254,5 +281,37 @@ def get_model_config(model_type: str) -> dict[str, Any]:
     return _validate_config(model_type, config, defaults)
 
 
+@lru_cache(maxsize=None)
+def get_model_backend(model_type: str) -> str:
+    model_type = model_type.strip().lower()
+    backend = _DEFAULT_MODEL_BACKENDS.get(model_type, "local")
+    try:
+        project_backend = _project_model_config(model_type).get("backend")
+    except ValueError:
+        raise
+    if project_backend is not None:
+        if not isinstance(project_backend, str):
+            raise ValueError(f"models.{model_type}.backend must be a string")
+        backend = project_backend.strip().lower()
+    env_backend = _env_model_backend(model_type)
+    if env_backend is not None:
+        backend = env_backend
+    if backend not in SUPPORTED_MODEL_BACKENDS:
+        raise ValueError(
+            f"Unsupported models.{model_type}.backend: {backend!r}. "
+            f"Expected one of {sorted(SUPPORTED_MODEL_BACKENDS)}."
+        )
+    return backend
+
+
+def get_model_runtime_config(model_type: str) -> dict[str, Any]:
+    model_type = model_type.strip().lower()
+    try:
+        return get_model_config(model_type)
+    except ValueError:
+        return _project_model_config(model_type)
+
+
 def clear_model_config_cache() -> None:
     get_model_config.cache_clear()
+    get_model_backend.cache_clear()

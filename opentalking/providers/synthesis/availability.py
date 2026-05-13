@@ -6,19 +6,23 @@ from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 
+from opentalking.models.registry import get_adapter
 from opentalking.providers.synthesis import SYNTHESIS_PROVIDERS
+from opentalking.providers.synthesis.backends import resolve_model_backend
 from opentalking.providers.synthesis.omnirt import auth_headers
 
 
 @dataclass(frozen=True)
 class ModelStatus:
     id: str
+    backend: str
     connected: bool
     reason: str
 
     def to_dict(self) -> dict[str, str | bool]:
         return {
             "id": self.id,
+            "backend": self.backend,
             "connected": self.connected,
             "reason": self.reason,
         }
@@ -82,35 +86,52 @@ def _explicit_env_enabled(name: str) -> bool:
     return raw is not None and raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _local_adapter_available(model: str) -> bool:
+    try:
+        get_adapter(model)
+    except Exception:
+        return False
+    return True
+
+
 async def resolve_model_statuses(settings) -> list[ModelStatus]:
     omnirt_models = await _fetch_omnirt_audio2video_models(settings)
     has_omnirt = bool((getattr(settings, "omnirt_endpoint", "") or "").strip())
-    has_flashtalk = bool((getattr(settings, "flashtalk_ws_url", "") or "").strip())
 
     statuses: list[ModelStatus] = []
     for model in SYNTHESIS_PROVIDERS:
+        resolved = resolve_model_backend(model, settings)
         connected = False
         reason = "not_configured"
-        if model == "mock":
+        if resolved.backend == "mock":
             connected = True
             reason = "local_self_test"
-        elif model == "flashtalk":
+        elif resolved.backend == "local":
+            connected = _local_adapter_available(model)
+            reason = "local_runtime" if connected else "local_adapter_missing"
+        elif resolved.backend == "omnirt":
             if has_omnirt:
                 connected = model in omnirt_models
                 reason = "omnirt" if connected else "omnirt_unavailable"
-            else:
-                connected = has_flashtalk
+            elif model == "flashtalk" and resolved.backend == "omnirt":
+                connected = bool(getattr(settings, "flashtalk_ws_url", ""))
                 reason = "legacy_ws" if connected else "not_configured"
-        elif model in {"wav2lip", "musetalk"}:
-            connected = has_omnirt and model in omnirt_models
-            reason = "omnirt" if connected else "omnirt_unavailable"
-        elif model == "flashhead":
-            connected = _explicit_env_enabled("OPENTALKING_FLASHHEAD_ENABLED")
-            reason = "explicit_enabled" if connected else "not_configured"
-        elif model == "quicktalk":
-            connected = True
-            reason = "local_runtime"
-        statuses.append(ModelStatus(id=model, connected=connected, reason=reason))
+            else:
+                reason = "not_configured"
+        elif resolved.backend == "direct_ws":
+            connected = bool(resolved.ws_url)
+            reason = "direct_ws" if connected else "not_configured"
+            if model == "flashhead" and _explicit_env_enabled("OPENTALKING_FLASHHEAD_ENABLED"):
+                connected = True
+                reason = "explicit_enabled"
+        statuses.append(
+            ModelStatus(
+                id=model,
+                backend=resolved.backend,
+                connected=connected,
+                reason=reason,
+            )
+        )
     return statuses
 
 

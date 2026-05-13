@@ -1,7 +1,7 @@
 <h1 align="center">OpenTalking</h1>
 
 <p align="center">
-  <b>Open-source real-time digital-human pipeline: LLM, TTS, WebRTC, character voices, and external OmniRT model services</b>
+  <b>Open-source real-time digital-human pipeline: LLM, TTS, WebRTC, character voices, and pluggable model backends</b>
 </p>
 
 <p align="center">
@@ -36,7 +36,7 @@ OpenTalking is an open-source real-time digital-human framework. The goal is to 
 OpenTalking focuses on the **pipeline orchestration layer** and supports both external API providers and locally deployed models. The default entrypoint is optimized for getting a first working loop quickly, then upgrading model quality as needed:
 
 - **Quick experience**: `mock / no-driver mode`, no standalone model service required, ideal for validating the API, TTS, WebRTC, and frontend.
-- **Lightweight adapter validation**: start `wav2lip` through [OmniRT](https://github.com/datascale-ai/omnirt), useful for validating Avatar asset format, model adapters, and end-to-end orchestration.
+- **Lightweight adapter validation**: `wav2lip` / `musetalk` can use local, direct single-model WebSocket, or OmniRT backends, useful for validating Avatar asset format, model adapters, and end-to-end orchestration.
 - **QuickTalk realtime path**: the local `quicktalk` adapter supports streaming LLM → sentence-level TTS → realtime lip rendering, with Worker caching to reduce first-turn startup cost.
 - **High-quality deployment**: connect `flashtalk` and other high-quality models through OmniRT for GPU / NPU private inference services.
 
@@ -211,7 +211,7 @@ bash scripts/quickstart/stop_all.sh --api-port 8010 --web-port 5180
 ### Path 2: Lightweight adapter validation
 
 **Goal**: iterate on Avatar assets, validate model adapters, run real wav2lip / musetalk / flashtalk models.
-**How**: run an [OmniRT](https://github.com/datascale-ai/omnirt) inference service locally or remotely; OpenTalking routes every audio2video model through one `OMNIRT_ENDPOINT`.
+**How**: choose a per-model backend. Lightweight models can run locally or behind a direct single-model WebSocket; [OmniRT](https://github.com/datascale-ai/omnirt) remains the compatible default for remote validation.
 
 For a quick real-model smoke test, start Wav2Lip OmniRT first:
 
@@ -222,7 +222,7 @@ bash scripts/quickstart/start_omnirt_wav2lip.sh --device cuda
 
 If OmniRT is on a remote GPU / NPU host, expose its `9000` port and use that host in `--omnirt`.
 
-OpenTalking derives each audio2video WebSocket route from the OmniRT endpoint. For example, `--omnirt http://omnirt:9000` + `model=wav2lip` becomes `ws://omnirt:9000/v1/audio2video/wav2lip`; `flashtalk`, `musetalk`, and `wav2lip` share this rule.
+For models configured with `backend: omnirt`, OpenTalking derives each audio2video WebSocket route from the OmniRT endpoint. For example, `--omnirt http://omnirt:9000` + `model=wav2lip` becomes `ws://omnirt:9000/v1/audio2video/wav2lip`.
 
 Start OpenTalking and point it at OmniRT:
 
@@ -289,7 +289,7 @@ Avatar manifest, inference endpoint mapping, hardware profiles: see [docs/config
 | Path | Inference backend | GPU | Best for |
 | --- | --- | --- | --- |
 | 1. Quick experience | Built-in Mock | not required | First-run, frontend dev, pipeline validation |
-| 2. Lightweight adapter validation | Local OmniRT + lightweight model | entry-level GPU (3060+) | Model / Avatar adapter development |
+| 2. Lightweight adapter validation | Local / direct WS / OmniRT lightweight model | entry-level GPU (3060+) | Model / Avatar adapter development |
 | QuickTalk realtime path | Local QuickTalk adapter | CUDA GPU | Local realtime digital-human demos and LLM dialogue |
 | 3. High-quality deployment | OmniRT + FlashTalk/FlashHead | 4090 / 910B | Private deployment, production, high-quality |
 
@@ -298,8 +298,8 @@ Avatar manifest, inference endpoint mapping, hardware profiles: see [docs/config
 | Model | Input | OpenTalking integration | Recommended path |
 | --- | --- | --- | --- |
 | `mock` | reference image | Built-in static frames | Path 1 |
-| `wav2lip` | frames + audio | OmniRT lightweight lip-sync | Path 2 |
-| `musetalk` | full frames + audio | OmniRT lightweight talking-head | Path 2 |
+| `wav2lip` | frames + audio | Pluggable lightweight lip-sync backend | Path 2 |
+| `musetalk` | full frames + audio | Pluggable lightweight talking-head backend | Path 2 |
 | `quicktalk` | template video + audio | Local realtime talking-head adapter with Worker caching and `/chat` | QuickTalk realtime path |
 | `soulx-flashtalk-14b` | portrait + audio | OmniRT high-quality FlashTalk | Path 3 |
 | `soulx-flashhead-1.3b` | portrait + audio | direct FlashHead WebSocket | Path 3 |
@@ -314,7 +314,7 @@ Avatar manifest, inference endpoint mapping, hardware profiles: see [docs/config
   Barge-in, session state, low-latency response, audio-video sync, error recovery.
 
 - [ ] **OmniRT model service integration**  
-  Unified access via OmniRT for FlashTalk, lightweight talking-head, ASR, speech synthesis, and voice services.
+  OmniRT backend for heavyweight, multi-card, and remote inference while lightweight models can remain local or direct-WS.
 
 - [ ] **Consumer-grade GPU support**  
   Lightweight models, single-card realtime configs, end-to-end benchmarks for RTX 3090 / 4090.
