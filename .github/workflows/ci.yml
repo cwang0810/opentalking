@@ -3,6 +3,7 @@ name: CI
 on:
   push:
     branches: ["main", "master"]
+  workflow_dispatch:
   pull_request:
 
 jobs:
@@ -72,3 +73,21 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install -U pip setuptools wheel
+          pip install -e ".[dev]"
+
+      - name: Build Docs
+        run: python -m mkdocs build --strict --clean

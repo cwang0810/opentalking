@@ -14,7 +14,10 @@ WebRTC 推送，以及按会话粒度的控制。模型与 provider 组合可按
 保持不变。
 
 [5 分钟开始 :material-rocket-launch:](user-guide/quickstart.md){ .md-button .md-button--primary }
+[在线文档固定地址 :material-open-in-new:](https://datascale-ai.github.io/opentalking/){ .md-button }
 [查看 GitHub 仓库 :material-github:](https://github.com/datascale-ai/opentalking){ .md-button }
+
+在线文档默认中文，英文入口：<https://datascale-ai.github.io/opentalking/en/>
 
 ---
 
