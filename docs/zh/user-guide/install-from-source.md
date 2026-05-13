@@ -40,19 +40,26 @@ export OMNIRT_MODEL_ROOT="$DIGITAL_HUMAN_HOME/models"
 ### 2. 安装 Python 依赖
 
 ```bash title="终端"
-python3 -m venv .venv
+uv sync --extra dev --python 3.11
 source .venv/bin/activate
-pip install -e ".[dev]"
 ```
 
 `[dev]` extra 安装运行时依赖与 `ruff`、`pytest`、`pytest-asyncio`、`pytest-cov` 等
 开发工具。
 
-PyPI 源较慢时可使用镜像：
+如需兼容 fallback，可使用：
 
 ```bash title="终端"
+python3 -m venv .venv
+source .venv/bin/activate
 pip install --index-url https://pypi.tuna.tsinghua.edu.cn/simple -e ".[dev]"
 ```
+
+说明：
+
+- 当前锁文件按 Python 3.11 验证。
+- 命中 PyAV wheel 时，只需要运行时 `ffmpeg`。
+- 如果切到未验证的 Python / PyAV 组合并触发源码构建，则还需要 `ffmpeg 7`、`pkg-config` 和 C 编译器。
 
 ### 3. 安装前端依赖
 
@@ -80,7 +87,9 @@ DASHSCOPE_API_KEY=<dashscope-api-key>
 ### 5. 验证安装
 
 ```bash title="终端"
-opentalking --help
+opentalking-unified --help
+opentalking-api --help
+opentalking-worker --help
 ```
 
 ## 场景：开发（CPU + mock 合成） {#development-cpu-mock-synthesis}
@@ -90,7 +99,7 @@ opentalking --help
 ### 启动单进程服务
 
 ```bash title="终端"
-bash scripts/quickstart/start_all.sh --mock
+bash scripts/quickstart/start_mock.sh
 ```
 
 该命令启动 OpenTalking 单进程服务（`http://127.0.0.1:8000`）与 Vite 开发服务器
@@ -127,7 +136,7 @@ OmniRT 为推理运行时，在 OpenTalking 同级目录 clone：
 cd "$DIGITAL_HUMAN_HOME"
 git clone https://github.com/datascale-ai/omnirt.git
 cd omnirt
-uv sync --extra server
+uv sync --extra server --python 3.11
 ```
 
 ### 下载模型权重
@@ -160,7 +169,7 @@ OMNIRT_ENDPOINT=http://127.0.0.1:9000
 
 ```bash title="终端"
 cd "$DIGITAL_HUMAN_HOME/opentalking"
-bash scripts/quickstart/start_all.sh
+bash scripts/quickstart/start_all.sh --omnirt http://127.0.0.1:9000
 ```
 
 前端创建会话时选择 `wav2lip` 模型。
@@ -207,14 +216,21 @@ source /usr/local/Ascend/ascend-toolkit/set_env.sh
 npu-smi info
 ```
 
-### 安装 Python 依赖
+### 安装 OpenTalking
 
-OpenTalking 的安装流程与通用步骤一致。OmniRT 需要 NPU 专用的 PyTorch wheel，
-由部署脚本完成。
+先按通用步骤完成 OpenTalking 安装，推荐使用 Python 3.11。国内网络环境建议先配置：
+
+```bash title="终端"
+export UV_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+export PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+```
+
+OmniRT 需要 NPU 专用的 PyTorch wheel，由部署脚本完成。
 
 ### 部署
 
 ```bash title="终端"
+source /usr/local/Ascend/ascend-toolkit/set_env.sh
 cd "$DIGITAL_HUMAN_HOME/opentalking"
 bash scripts/deploy_ascend_910b.sh
 ```
@@ -222,8 +238,9 @@ bash scripts/deploy_ascend_910b.sh
 脚本执行：
 
 1. source CANN 环境文件。
-2. 配置 NPU 专属环境变量（`OMNIRT_WAV2LIP_DEVICE=npu`、`OMNIRT_WAV2LIP_FACE_DET_DEVICE=cpu`）。
-3. 通过 `scripts/quickstart/start_omnirt_wav2lip.sh --device npu` 启动 OmniRT。
+2. 校验同级 `omnirt/` checkout、OmniRT virtualenv 和 `wav2lip` 权重目录。
+3. 配置 NPU 专属环境变量（`OMNIRT_WAV2LIP_DEVICE=npu`、`OMNIRT_WAV2LIP_FACE_DET_DEVICE=cpu`）。
+4. 通过 `scripts/quickstart/start_omnirt_wav2lip.sh --device npu` 启动 OmniRT。
 
 ### 支持的模型
 
@@ -315,8 +332,8 @@ python -m apps.worker.main --host 0.0.0.0 --port 9001
 ```bash title="终端"
 cd "$DIGITAL_HUMAN_HOME/opentalking"
 git pull
+uv sync --extra dev --python 3.11
 source .venv/bin/activate
-pip install -e ".[dev]"
 cd apps/web && npm ci && cd ../..
 ```
 
@@ -326,7 +343,7 @@ cd apps/web && npm ci && cd ../..
 
 | 现象 | 处理方式 |
 |------|---------|
-| `ModuleNotFoundError: opentalking` | 通过 `source .venv/bin/activate` 激活虚拟环境，或执行 `pip install -e ".[dev]"`。 |
+| `ModuleNotFoundError: opentalking` | 通过 `source .venv/bin/activate` 激活虚拟环境，或执行 `uv sync --extra dev --python 3.11`；兼容 fallback 为 `pip install --index-url https://pypi.tuna.tsinghua.edu.cn/simple -e ".[dev]"`。 |
 | TTS 解码时报 `ffmpeg: not found` | 安装 ffmpeg。macOS：`brew install ffmpeg`；Debian/Ubuntu：`apt install ffmpeg`。 |
 | `torch.cuda.is_available()` 返回 False | 检查 NVIDIA driver、CUDA Toolkit，以及 `torch` 包是否与 CUDA 版本匹配。 |
 | OmniRT 因 `CUDA out of memory` 退出 | 降低 `OPENTALKING_FLASHTALK_FRAME_NUM`、`OPENTALKING_FLASHTALK_SAMPLE_STEPS` 或输出分辨率，参见 [配置 → FlashTalk 渲染参数](configuration.md#flashtalk)。 |

@@ -122,12 +122,12 @@ REST 与 WebSocket 接口，并按会话所选模型把合成委托给对应 bac
 git clone https://github.com/datascale-ai/opentalking.git
 cd opentalking
 
-python3 -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
+uv sync --extra dev --python 3.11
+source .venv/bin/activate
 cp .env.example .env
 
 # 在 .env 中配置 OPENTALKING_LLM_API_KEY 与 DASHSCOPE_API_KEY，然后执行：
-bash scripts/quickstart/start_all.sh --mock
+bash scripts/quickstart/start_mock.sh
 ```
 
 服务启动后，访问 <http://localhost:5173>，选择 `demo-avatar` 与 `mock` 模型即可

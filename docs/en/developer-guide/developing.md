@@ -34,13 +34,14 @@ opentalking/
 ```bash title="terminal"
 git clone https://github.com/datascale-ai/opentalking.git
 cd opentalking
-python3 -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
+uv sync --extra dev --python 3.11
+source .venv/bin/activate
 pre-commit install
 ```
 
 The `[dev]` extra installs `ruff`, `pytest`, `pytest-asyncio`, `pytest-cov`, and
-related development dependencies.
+related development dependencies. If you need the compatibility fallback instead,
+use `python3 -m venv .venv && source .venv/bin/activate && pip install --index-url https://pypi.tuna.tsinghua.edu.cn/simple -e ".[dev]"`.
 
 ## Running locally
 
@@ -53,7 +54,7 @@ The recommended configuration for frontend changes, orchestration changes, and A
 schema modifications. No GPU is required.
 
 ```bash title="terminal"
-bash scripts/quickstart/start_all.sh --mock
+bash scripts/quickstart/start_mock.sh
 ```
 
 - Backend: <http://127.0.0.1:8000>
@@ -210,7 +211,7 @@ The complete endpoint surface is documented in the [API Reference](../api-refere
 
 | Symptom | Likely cause |
 |---------|--------------|
-| `ModuleNotFoundError: opentalking` | The package was not installed with `pip install -e ".[dev]"`. |
+| `ModuleNotFoundError: opentalking` | `uv sync --extra dev --python 3.11` was not run, or the compatibility fallback `pip install --index-url https://pypi.tuna.tsinghua.edu.cn/simple -e ".[dev]"` was skipped. |
 | Browser reports WebRTC is unavailable | The browser blocks WebRTC on non-HTTPS, non-localhost origins. |
 | Worker logs `redis connection refused` | Switch to unified mode or start `redis-server`. |
 | A test hangs at `await ws.send_text()` | `OPENTALKING_TEST_LIVE` is set and the live service is unreachable. |

@@ -42,19 +42,26 @@ export OMNIRT_MODEL_ROOT="$DIGITAL_HUMAN_HOME/models"
 ### 2. Install Python dependencies
 
 ```bash title="terminal"
-python3 -m venv .venv
+uv sync --extra dev --python 3.11
 source .venv/bin/activate
-pip install -e ".[dev]"
 ```
 
 The `[dev]` extra installs runtime dependencies plus `ruff`, `pytest`,
 `pytest-asyncio`, `pytest-cov`, and related development tooling.
 
-For installations behind a slow PyPI mirror:
+If you need the compatibility fallback instead:
 
 ```bash title="terminal"
+python3 -m venv .venv
+source .venv/bin/activate
 pip install --index-url https://pypi.tuna.tsinghua.edu.cn/simple -e ".[dev]"
 ```
+
+Notes:
+
+- The lockfile is validated with Python 3.11.
+- When PyAV resolves to a wheel, only runtime `ffmpeg` is required.
+- If you move to an unvalidated Python or PyAV combination and trigger a source build, you will also need `ffmpeg 7`, `pkg-config`, and a C compiler.
 
 ### 3. Install frontend dependencies
 
@@ -83,7 +90,9 @@ reference is in [Configuration](configuration.md).
 ### 5. Verify the installation
 
 ```bash title="terminal"
-opentalking --help
+opentalking-unified --help
+opentalking-api --help
+opentalking-worker --help
 ```
 
 ## Scenario: development with CPU and mock synthesis {#development-cpu-mock-synthesis}
@@ -94,7 +103,7 @@ without GPU access.
 ### Run the unified server
 
 ```bash title="terminal"
-bash scripts/quickstart/start_all.sh --mock
+bash scripts/quickstart/start_mock.sh
 ```
 
 This launches the OpenTalking unified server on `http://127.0.0.1:8000` and the Vite
@@ -133,7 +142,7 @@ OmniRT is the inference runtime. Clone it next to OpenTalking:
 cd "$DIGITAL_HUMAN_HOME"
 git clone https://github.com/datascale-ai/omnirt.git
 cd omnirt
-uv sync --extra server
+uv sync --extra server --python 3.11
 ```
 
 ### Download model weights
@@ -167,7 +176,7 @@ OMNIRT_ENDPOINT=http://127.0.0.1:9000
 
 ```bash title="terminal"
 cd "$DIGITAL_HUMAN_HOME/opentalking"
-bash scripts/quickstart/start_all.sh
+bash scripts/quickstart/start_all.sh --omnirt http://127.0.0.1:9000
 ```
 
 In the frontend, select the `wav2lip` model when creating a session.
@@ -214,15 +223,23 @@ source /usr/local/Ascend/ascend-toolkit/set_env.sh
 npu-smi info
 ```
 
-### Install Python dependencies
+### Install OpenTalking
 
-The OpenTalking installation procedure is identical to the common steps documented
-above. The OmniRT installation requires the NPU-specific PyTorch wheel; this is
-handled by the deployment script.
+Complete the OpenTalking installation from the common steps first, preferably with
+Python 3.11. In China-friendly environments, set these mirrors before installing:
+
+```bash title="terminal"
+export UV_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+export PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+```
+
+The OmniRT installation requires the NPU-specific PyTorch wheel; the deployment
+script handles that part.
 
 ### Deploy
 
 ```bash title="terminal"
+source /usr/local/Ascend/ascend-toolkit/set_env.sh
 cd "$DIGITAL_HUMAN_HOME/opentalking"
 bash scripts/deploy_ascend_910b.sh
 ```
@@ -230,8 +247,9 @@ bash scripts/deploy_ascend_910b.sh
 The script:
 
 1. Sources the CANN environment file.
-2. Configures the NPU-specific environment variables (`OMNIRT_WAV2LIP_DEVICE=npu`, `OMNIRT_WAV2LIP_FACE_DET_DEVICE=cpu`).
-3. Starts OmniRT via `scripts/quickstart/start_omnirt_wav2lip.sh --device npu`.
+2. Verifies the sibling `omnirt/` checkout, the OmniRT virtualenv, and the `wav2lip` model directory.
+3. Configures the NPU-specific environment variables (`OMNIRT_WAV2LIP_DEVICE=npu`, `OMNIRT_WAV2LIP_FACE_DET_DEVICE=cpu`).
+4. Starts OmniRT via `scripts/quickstart/start_omnirt_wav2lip.sh --device npu`.
 
 ### Supported models
 
@@ -325,8 +343,8 @@ To update an existing source installation:
 ```bash title="terminal"
 cd "$DIGITAL_HUMAN_HOME/opentalking"
 git pull
+uv sync --extra dev --python 3.11
 source .venv/bin/activate
-pip install -e ".[dev]"
 cd apps/web && npm ci && cd ../..
 ```
 
@@ -336,7 +354,7 @@ Database schema migrations are applied automatically at process startup.
 
 | Symptom | Resolution |
 |---------|------------|
-| `ModuleNotFoundError: opentalking` | Activate the virtual environment with `source .venv/bin/activate` or run `pip install -e ".[dev]"`. |
+| `ModuleNotFoundError: opentalking` | Activate the virtual environment with `source .venv/bin/activate` or run `uv sync --extra dev --python 3.11`; the fallback is `pip install --index-url https://pypi.tuna.tsinghua.edu.cn/simple -e ".[dev]"`. |
 | `ffmpeg: not found` during TTS decoding | Install ffmpeg. macOS: `brew install ffmpeg`. Debian/Ubuntu: `apt install ffmpeg`. |
 | `torch.cuda.is_available()` returns False | Verify the NVIDIA driver, CUDA Toolkit, and that the installed `torch` package matches the CUDA version. |
 | OmniRT exits with `CUDA out of memory` | Lower `OPENTALKING_FLASHTALK_FRAME_NUM`, `OPENTALKING_FLASHTALK_SAMPLE_STEPS`, or the output resolution. See [Configuration → FlashTalk rendering parameters](configuration.md#flashtalk-rendering-parameters). |

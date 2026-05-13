@@ -49,9 +49,8 @@ Install OpenTalking first:
 ```bash title="terminal"
 git clone https://github.com/datascale-ai/opentalking.git
 cd opentalking
-python3 -m venv .venv
+uv sync --extra dev --python 3.11
 source .venv/bin/activate
-pip install -e ".[dev]"
 cp .env.example .env
 ```
 
@@ -67,14 +66,14 @@ DASHSCOPE_API_KEY=<dashscope-api-key>
 International environments can use Hugging Face directly:
 
 ```bash title="terminal"
-pip install -U "huggingface_hub[cli]"
+uv pip install -U "huggingface_hub[cli]"
 hf auth login  # optional, required for gated/private models
 ```
 
 China-friendly environments can use ModelScope when the model is mirrored there:
 
 ```bash title="terminal"
-pip install -U modelscope
+uv pip install -U modelscope
 modelscope login  # optional
 ```
 
@@ -191,7 +190,7 @@ This is expected and prevents a silent fallback to OmniRT.
 cd "$DIGITAL_HUMAN_HOME"
 git clone https://github.com/datascale-ai/omnirt.git
 cd omnirt
-uv sync --extra server
+uv sync --extra server --python 3.11
 ```
 
 ### 4. Start Wav2Lip through OmniRT
@@ -207,7 +206,7 @@ Ascend:
 
 ```bash title="terminal"
 source /usr/local/Ascend/ascend-toolkit/set_env.sh
-bash scripts/quickstart/start_omnirt_wav2lip.sh --device npu
+bash scripts/deploy_ascend_910b.sh
 ```
 
 ### 5. Start OpenTalking

@@ -18,7 +18,7 @@
 
 选择拓扑前先准备：
 
-- Python 3.10 或更高版本、Node.js 18 或更高版本、Redis 7、FFmpeg。
+- Python 3.10 或更高版本（建议 3.11）、Node.js 18 或更高版本、Redis 7、FFmpeg。
 - 从 `.env.example` 复制并填写 `.env`。
 - 按 [配置](configuration.md) 填好 LLM、STT、TTS。
 - 按 [模型](../model-deployment/index.md) 准备 avatar 资产和模型 backend。
@@ -34,14 +34,21 @@
 ```bash title="终端"
 git clone https://github.com/datascale-ai/opentalking.git
 cd opentalking
-python3 -m venv .venv
+uv sync --extra dev --python 3.11
 source .venv/bin/activate
-pip install -e .
 
 cd apps/web
 npm ci
 cd ../..
 cp .env.example .env
+```
+
+如需兼容 fallback，可改用：
+
+```bash title="终端"
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --index-url https://pypi.tuna.tsinghua.edu.cn/simple -e ".[dev]"
 ```
 
 最小运行配置：
@@ -257,13 +264,13 @@ NPU 评估建议用宿主机源码部署，让进程继承 CANN 环境：
 
 ```bash title="终端"
 source /usr/local/Ascend/ascend-toolkit/set_env.sh
-source .venv/bin/activate
 bash scripts/deploy_ascend_910b.sh
 ```
 
 前置条件：
 
 - CANN 8.0 或更高版本。
+- 推荐先设置 `UV_INDEX_URL` / `PIP_INDEX_URL` 指向国内镜像后再安装 OpenTalking 与 OmniRT。
 - 使用 `backend: omnirt` 时，OmniRT 仓库与 OpenTalking 仓库处于同级目录。
 - 模型检查点位于 `$DIGITAL_HUMAN_HOME/models/`。
 

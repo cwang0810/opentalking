@@ -38,7 +38,7 @@ Independent of the installation method, the following components are required:
 
 Source-installation additional requirements:
 
-- Python 3.9 or later (3.11 recommended).
+- Python 3.10 or later (3.11 recommended).
 - Node.js 18 or later for the frontend toolchain.
 - ffmpeg for the text-to-speech decoding stage.
 - Optionally Redis 6 or later for the API/Worker split deployment.

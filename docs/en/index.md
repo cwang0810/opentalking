@@ -130,12 +130,12 @@ or a mock path for tests.
 git clone https://github.com/datascale-ai/opentalking.git
 cd opentalking
 
-python3 -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
+uv sync --extra dev --python 3.11
+source .venv/bin/activate
 cp .env.example .env
 
 # Configure OPENTALKING_LLM_API_KEY and DASHSCOPE_API_KEY in .env, then:
-bash scripts/quickstart/start_all.sh --mock
+bash scripts/quickstart/start_mock.sh
 ```
 
 After startup, open <http://localhost:5173>, select the `demo-avatar` and `mock`

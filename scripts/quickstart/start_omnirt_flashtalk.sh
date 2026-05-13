@@ -4,6 +4,8 @@ set -euo pipefail
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd -- "$script_dir/../.." && pwd)"
 default_home="$(cd -- "$repo_root/.." && pwd)"
+# shellcheck disable=SC1091
+source "$script_dir/_helpers.sh"
 
 env_file="${OPENTALKING_QUICKSTART_ENV:-$script_dir/env}"
 if [[ -f "$env_file" ]]; then
@@ -109,7 +111,11 @@ if [[ ! -d "$omnirt_dir" ]]; then
 fi
 if [[ ! -f "$omnirt_dir/.venv/bin/activate" ]]; then
   echo "Missing OmniRT virtualenv: $omnirt_dir/.venv" >&2
-  echo "Run this first: cd \"$omnirt_dir\" && uv sync --extra server" >&2
+  if uv_bin="$(quickstart_resolve_uv)"; then
+    echo "Run this first: cd \"$omnirt_dir\" && \"$uv_bin\" sync --extra server --python 3.11" >&2
+  else
+    echo "Install uv first, then run: cd \"$omnirt_dir\" && uv sync --extra server --python 3.11" >&2
+  fi
   exit 1
 fi
 
@@ -170,6 +176,7 @@ echo "  log:            $log_file"
   echo "  FLASHTALK_JPEG_WORKERS=${FLASHTALK_JPEG_WORKERS:-<unset>}"
 
   if [[ "$install_deps" == "1" ]]; then
+    uv_bin="$(quickstart_require_uv "OmniRT dependency installation")"
     if [[ "$backend" == "ascend" ]]; then
       python -m omnirt.cli.main runtime install flashtalk \
         --device ascend \
@@ -179,9 +186,9 @@ echo "  log:            $log_file"
       if [[ ! -d "$OMNIRT_FLASHTALK_REPO_PATH/flash_talk" ]]; then
         git clone https://github.com/Soul-AILab/SoulX-FlashTalk.git "$OMNIRT_FLASHTALK_REPO_PATH"
       fi
-      uv pip install -r "$OMNIRT_FLASHTALK_REPO_PATH/requirements.txt"
-      uv pip install ninja
-      uv pip install flash-attn --no-build-isolation
+      "$uv_bin" pip install -r "$OMNIRT_FLASHTALK_REPO_PATH/requirements.txt"
+      "$uv_bin" pip install ninja
+      "$uv_bin" pip install flash-attn --no-build-isolation
     fi
   fi
 
