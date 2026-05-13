@@ -20,11 +20,12 @@
 
 <p align="center">
   <a href="#capabilities">Capabilities</a> ·
-  <a href="#community">Community</a> ·
   <a href="#demo-videos">Demo videos</a> ·
   <a href="#architecture">Architecture</a> ·
   <a href="#quickstart">Quickstart</a> ·
   <a href="#roadmap">Roadmap</a> ·
+  <a href="#documentation">Documentation</a> ·
+  <a href="#community">Community</a> ·
   <a href="#acknowledgements">Acknowledgements</a>
 </p>
 
@@ -53,18 +54,6 @@ OpenTalking focuses on the **pipeline orchestration layer** and supports both ex
 - **OpenAI-compatible LLM**: works with DashScope, Ollama, vLLM, DeepSeek, and any other OpenAI-compatible endpoint.
 - **Multiple deployment shapes**: single-process demo, distributed API + Worker mode, and Docker Compose.
 - **QuickTalk adapter**: built-in `quicktalk` model registration, Avatar validation, realtime render queue, audio-video sync, and benchmark CLI.
-
-## Community
-
-Join our QQ group to discuss real-time digital humans, FlashTalk, OmniRT, model deployment, and product use cases.
-
-<p align="center">
-  <img src="docs/assets/images/qq_group_qrcode.png" alt="AI Digital Human QQ group QR code" width="280">
-</p>
-
-<p align="center">
-  <b>AI Digital Human QQ group</b> · ID: <code>1103327938</code>
-</p>
 
 ## Digital-human service interface
 
@@ -341,28 +330,28 @@ bash scripts/deploy_ascend_910b.sh
 
 ## Roadmap
 
-- [x] **Real-time digital-human baseline**  
+- [x] **Real-time digital-human baseline**
   Web console, LLM dialogue, TTS, subtitle events, WebRTC media playback.
 
-- [ ] **More natural realtime dialogue(in progress)**  
+- [ ] **More natural realtime dialogue (in progress)**
   Barge-in, session state, low-latency response, audio-video sync, error recovery.
 
-- [ ] **OmniRT model service integration**  
+- [x] **OmniRT model service integration**
   OmniRT backend for heavyweight, multi-card, and remote inference while lightweight models can remain local or direct-WS.
 
-- [ ] **Consumer-grade GPU support**  
+- [x] **Consumer-grade GPU support**
   Lightweight models, single-card realtime configs, end-to-end benchmarks for RTX 3090 / 4090.
 
-- [ ] **High-quality private deployment(in progress)**  
+- [ ] **High-quality private deployment (in progress)**
   Enterprise private deployment with pluggable synthesis backends, OmniRT capacity scheduling for heavyweight models, health checks, production monitoring; Ascend 910B and similar enterprise GPU / NPU paths in progress.
 
-- [ ] **Custom characters and voices**  
+- [x] **Custom characters and voices**
   Character config, built-in voice selection, reference audio upload, natural-language voice description, and OmniRT-driven voice synthesis.
 
-- [ ] **Agent and memory capabilities**  
+- [ ] **Agent and memory capabilities**
   Integration with OpenClaw or external agents to reuse their memory, tool use, and knowledge-base capabilities.
 
-- [ ] **Production-grade platform**  
+- [ ] **Production-grade platform**
   Multi-session scheduling, observability, security and compliance, licensed voices, synthetic-content provenance.
 
 ## Documentation
@@ -374,6 +363,18 @@ bash scripts/deploy_ascend_910b.sh
 - [Deployment](docs/en/user-guide/deployment.md) (Docker Compose, distributed deployment)
 - [Model adapters](docs/en/developer-guide/model-adapter.md)
 - [Contributing](CONTRIBUTING.md) (dev environment, CLI tools, ruff / mypy / pytest)
+
+## Community
+
+Join our QQ group to discuss real-time digital humans, FlashTalk, OmniRT, model deployment, and product use cases.
+
+<p align="center">
+  <img src="docs/assets/images/qq_group_qrcode.png" alt="AI Digital Human QQ group QR code" width="280">
+</p>
+
+<p align="center">
+  <b>AI Digital Human QQ group</b> · ID: <code>1103327938</code>
+</p>
 
 ## Acknowledgements
 
