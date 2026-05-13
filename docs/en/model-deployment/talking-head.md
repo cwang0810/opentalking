@@ -10,7 +10,7 @@ OpenTalking is the orchestration layer. Model execution is selected per model:
 | Model | Backend status | Recommended first path | Weight requirement |
 |-------|----------------|------------------------|--------------------|
 | `mock` | `mock` | Built-in self-test | None |
-| `wav2lip` | `omnirt` for compatibility; local-first target | Lightweight local or direct backend; OmniRT is the current runnable compatibility path | Wav2Lip + S3FD checkpoints |
+| `wav2lip` | Default `local`; optional `omnirt` compatibility path | Built-in local adapter; switch to OmniRT for checkpoint-backed inference | No weights by default; OmniRT compatibility path needs Wav2Lip + S3FD checkpoints |
 | `musetalk` | `omnirt` | OmniRT or a future local adapter | MuseTalk 1.5 weights |
 | `quicktalk` | `local` | Local adapter | QuickTalk `hdModule` asset bundle |
 | `flashtalk` | `omnirt` | OmniRT on CUDA or Ascend | SoulX-FlashTalk-14B + wav2vec2 |
@@ -124,13 +124,52 @@ Expected status:
 
 ## Wav2Lip
 
-Wav2Lip is the recommended first real model because it is lightweight and easy to
-debug. The product default should be local or a single-model direct backend, not a
-mandatory OmniRT dependency. The current release keeps `backend: omnirt` as a
-compatibility default because the bundled local Wav2Lip adapter is not complete yet;
-the steps below are the runnable compatibility path.
+Wav2Lip is the recommended first lightweight talking-head validation path. The
+repository now includes a Wav2Lip-compatible local adapter that drives prepared
+`frames/` assets, or a single `reference.png` fallback, with audio-driven mouth
+motion. It does not require Wav2Lip / S3FD checkpoints or OmniRT for the default
+path.
 
-### 1. Download weights
+### 1. Use the bundled local backend
+
+```yaml title="configs/default.yaml"
+models:
+  wav2lip:
+    backend: local
+```
+
+Start OpenTalking and verify:
+
+```bash title="terminal"
+bash scripts/quickstart/start_all.sh
+curl -s http://127.0.0.1:8000/models | jq '.statuses[] | select(.id=="wav2lip")'
+```
+
+Expected:
+
+```json
+{"id":"wav2lip","backend":"local","connected":true,"reason":"local_runtime"}
+```
+
+### 2. Choose the backend
+
+Default configuration:
+
+```yaml title="configs/default.yaml"
+models:
+  wav2lip:
+    backend: local
+```
+
+For the checkpoint-backed compatibility path, explicitly switch back to OmniRT:
+
+```yaml title="configs/default.yaml"
+models:
+  wav2lip:
+    backend: omnirt
+```
+
+### 3. Optional: prepare weights and OmniRT for the compatibility path
 
 Primary Hugging Face sources:
 
@@ -139,52 +178,9 @@ Primary Hugging Face sources:
 
 ```bash title="terminal"
 mkdir -p "$OMNIRT_MODEL_ROOT/wav2lip"
-
-hf download Pypa/wav2lip384 \
-  wav2lip384.pth \
-  --local-dir "$OMNIRT_MODEL_ROOT/wav2lip"
-
-hf download rippertnt/wav2lip \
-  s3fd.pth \
-  --local-dir "$OMNIRT_MODEL_ROOT/wav2lip"
+hf download Pypa/wav2lip384 wav2lip384.pth --local-dir "$OMNIRT_MODEL_ROOT/wav2lip"
+hf download rippertnt/wav2lip s3fd.pth --local-dir "$OMNIRT_MODEL_ROOT/wav2lip"
 ```
-
-China-friendly options:
-
-- Search [ModelScope for wav2lip384](https://modelscope.cn/models?name=wav2lip384)
-- Search [ModelScope for s3fd wav2lip](https://modelscope.cn/models?name=s3fd%20wav2lip)
-- Search [Modelers for wav2lip384](https://modelers.cn/models?name=wav2lip384)
-
-Keep the final files in:
-
-```text
-$OMNIRT_MODEL_ROOT/wav2lip/wav2lip384.pth
-$OMNIRT_MODEL_ROOT/wav2lip/s3fd.pth
-```
-
-### 2. Choose the backend
-
-Recommended target deployment:
-
-```yaml title="configs/default.yaml"
-models:
-  wav2lip:
-    backend: local      # recommended once a local adapter is installed
-```
-
-Current runnable compatibility path:
-
-```yaml title="configs/default.yaml"
-models:
-  wav2lip:
-    backend: omnirt
-```
-
-If you set `OPENTALKING_WAV2LIP_BACKEND=local` before installing a local adapter,
-`/models` intentionally reports `connected=false` with `reason=local_adapter_missing`.
-This is expected and prevents a silent fallback to OmniRT.
-
-### 3. Prepare OmniRT for the compatibility path
 
 ```bash title="terminal"
 cd "$DIGITAL_HUMAN_HOME"
@@ -193,7 +189,7 @@ cd omnirt
 uv sync --extra server --python 3.11
 ```
 
-### 4. Start Wav2Lip through OmniRT
+### 4. Start Wav2Lip through the OmniRT compatibility path
 
 CUDA:
 
@@ -209,7 +205,7 @@ source /usr/local/Ascend/ascend-toolkit/set_env.sh
 bash scripts/deploy_ascend_910b.sh
 ```
 
-### 5. Start OpenTalking
+### 5. Start OpenTalking against OmniRT
 
 ```bash title="terminal"
 bash scripts/quickstart/start_all.sh --omnirt http://127.0.0.1:9000

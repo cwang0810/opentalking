@@ -38,8 +38,9 @@ def test_models_route_lists_all_models_with_connection_status_without_omnirt() -
     assert statuses["flashtalk"]["connected"] is False
     assert statuses["musetalk"]["backend"] == "omnirt"
     assert statuses["musetalk"]["connected"] is False
-    assert statuses["wav2lip"]["backend"] == "omnirt"
-    assert statuses["wav2lip"]["connected"] is False
+    assert statuses["wav2lip"]["backend"] == "local"
+    assert statuses["wav2lip"]["connected"] is True
+    assert statuses["wav2lip"]["reason"] == "local_runtime"
     assert statuses["flashhead"]["backend"] == "direct_ws"
     assert statuses["flashhead"]["connected"] is False
     assert statuses["quicktalk"]["backend"] == "local"
@@ -99,7 +100,7 @@ def test_omnirt_endpoint_defaults_to_audio2video_routes() -> None:
     assert resolve_synthesis_ws_url("flashtalk", settings) == "ws://127.0.0.1:9000/v1/audio2video/flashtalk"
 
 
-async def test_omnirt_status_takes_precedence_over_legacy_flashtalk_url(monkeypatch) -> None:
+async def test_omnirt_status_keeps_local_backend_local(monkeypatch) -> None:
     async def fake_fetch(_settings) -> set[str]:
         return {"flashtalk", "wav2lip"}
 
@@ -117,8 +118,9 @@ async def test_omnirt_status_takes_precedence_over_legacy_flashtalk_url(monkeypa
 
     assert statuses["flashtalk"].connected is True
     assert statuses["flashtalk"].reason == "omnirt"
+    assert statuses["wav2lip"].backend == "local"
     assert statuses["wav2lip"].connected is True
-    assert statuses["wav2lip"].reason == "omnirt"
+    assert statuses["wav2lip"].reason == "local_runtime"
 
 
 async def test_omnirt_endpoint_only_affects_omnirt_backend(tmp_path, monkeypatch) -> None:
@@ -155,8 +157,8 @@ models:
     assert statuses["flashtalk"].backend == "omnirt"
     assert statuses["flashtalk"].connected is True
     assert statuses["wav2lip"].backend == "local"
-    assert statuses["wav2lip"].connected is False
-    assert statuses["wav2lip"].reason == "local_adapter_missing"
+    assert statuses["wav2lip"].connected is True
+    assert statuses["wav2lip"].reason == "local_runtime"
     assert statuses["musetalk"].backend == "direct_ws"
     assert statuses["musetalk"].connected is True
     assert statuses["musetalk"].reason == "direct_ws"

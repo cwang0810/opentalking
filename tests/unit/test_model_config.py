@@ -107,7 +107,7 @@ models:
         get_model_config("flashtalk")
 
 
-def test_get_model_backend_uses_builtin_compat_defaults(
+def test_get_model_backend_uses_builtin_defaults(
     tmp_path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -117,7 +117,7 @@ def test_get_model_backend_uses_builtin_compat_defaults(
     assert get_model_backend("mock") == "mock"
     assert get_model_backend("quicktalk") == "local"
     assert get_model_backend("flashhead") == "direct_ws"
-    assert get_model_backend("wav2lip") == "omnirt"
+    assert get_model_backend("wav2lip") == "local"
     assert get_model_backend("musetalk") == "omnirt"
 
 

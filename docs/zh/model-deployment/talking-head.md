@@ -8,7 +8,7 @@ OpenTalking 是编排层，模型执行按模型选择：
 | 模型 | backend 状态 | 推荐首选路径 | 权重需求 |
 |------|--------------|--------------|----------|
 | `mock` | `mock` | 内置自测 | 无 |
-| `wav2lip` | 兼容默认 `omnirt`；目标是 local-first | 轻量本地或单模型直连 backend；当前可直接跑通的是 OmniRT 兼容路径 | Wav2Lip + S3FD checkpoint |
+| `wav2lip` | 默认 `local`；可选 `omnirt` 兼容路径 | 内置 local adapter；需要 checkpoint-backed 推理时切到 OmniRT | 默认无需权重；OmniRT 兼容路径需要 Wav2Lip + S3FD checkpoint |
 | `musetalk` | `omnirt` | OmniRT 或后续本地 adapter | MuseTalk 1.5 权重 |
 | `quicktalk` | `local` | 本地 adapter | QuickTalk `hdModule` 资产包 |
 | `flashtalk` | `omnirt` | OmniRT + CUDA 或 Ascend | SoulX-FlashTalk-14B + wav2vec2 |
@@ -121,12 +121,50 @@ curl -s http://127.0.0.1:8000/models | jq '.statuses[] | select(.id=="mock")'
 
 ## Wav2Lip
 
-Wav2Lip 是推荐的第一个真实模型：权重小、启动快、便于排错。产品默认部署方向应是本地
-或单模型直连 backend，而不是强制依赖 OmniRT。当前版本为了兼容仍保留
-`backend: omnirt` 作为可直接跑通路径，因为仓库内置的本地 Wav2Lip adapter 尚未补齐；
-下述步骤是当前可运行的兼容路径。
+Wav2Lip 是推荐的第一个轻量 talking-head 验证路径。仓库已内置 Wav2Lip-compatible
+local adapter，可以直接用预处理 `frames/` 或单张 `reference.png` 做音频驱动口型动画；
+不需要先下载 Wav2Lip / S3FD checkpoint，也不需要强制依赖 OmniRT。
 
-### 1. 下载权重
+### 1. 使用内置 local backend
+
+```yaml title="configs/default.yaml"
+models:
+  wav2lip:
+    backend: local
+```
+
+启动 OpenTalking 后验证：
+
+```bash title="终端"
+bash scripts/quickstart/start_all.sh
+curl -s http://127.0.0.1:8000/models | jq '.statuses[] | select(.id=="wav2lip")'
+```
+
+期望：
+
+```json
+{"id":"wav2lip","backend":"local","connected":true,"reason":"local_runtime"}
+```
+
+### 2. 选择 backend
+
+默认配置：
+
+```yaml title="configs/default.yaml"
+models:
+  wav2lip:
+    backend: local
+```
+
+如需 checkpoint-backed 兼容路径，可显式切回 OmniRT：
+
+```yaml title="configs/default.yaml"
+models:
+  wav2lip:
+    backend: omnirt
+```
+
+### 3. 可选：为 OmniRT 兼容路径准备权重与服务
 
 Hugging Face 主源：
 
@@ -135,51 +173,9 @@ Hugging Face 主源：
 
 ```bash title="终端"
 mkdir -p "$OMNIRT_MODEL_ROOT/wav2lip"
-
-hf download Pypa/wav2lip384 \
-  wav2lip384.pth \
-  --local-dir "$OMNIRT_MODEL_ROOT/wav2lip"
-
-hf download rippertnt/wav2lip \
-  s3fd.pth \
-  --local-dir "$OMNIRT_MODEL_ROOT/wav2lip"
+hf download Pypa/wav2lip384 wav2lip384.pth --local-dir "$OMNIRT_MODEL_ROOT/wav2lip"
+hf download rippertnt/wav2lip s3fd.pth --local-dir "$OMNIRT_MODEL_ROOT/wav2lip"
 ```
-
-国内可选入口：
-
-- [ModelScope 搜索 wav2lip384](https://modelscope.cn/models?name=wav2lip384)
-- [ModelScope 搜索 s3fd wav2lip](https://modelscope.cn/models?name=s3fd%20wav2lip)
-- [魔乐社区搜索 wav2lip384](https://modelers.cn/models?name=wav2lip384)
-
-最终文件需要位于：
-
-```text
-$OMNIRT_MODEL_ROOT/wav2lip/wav2lip384.pth
-$OMNIRT_MODEL_ROOT/wav2lip/s3fd.pth
-```
-
-### 2. 选择 backend
-
-推荐目标部署：
-
-```yaml title="configs/default.yaml"
-models:
-  wav2lip:
-    backend: local      # 安装本地 adapter 后推荐
-```
-
-当前可运行兼容路径：
-
-```yaml title="configs/default.yaml"
-models:
-  wav2lip:
-    backend: omnirt
-```
-
-如果在未安装本地 adapter 前设置 `OPENTALKING_WAV2LIP_BACKEND=local`，`/models` 会按预期
-返回 `connected=false` 与 `reason=local_adapter_missing`，不会静默回退 OmniRT。
-
-### 3. 为兼容路径准备 OmniRT
 
 ```bash title="终端"
 cd "$DIGITAL_HUMAN_HOME"
@@ -188,7 +184,7 @@ cd omnirt
 uv sync --extra server --python 3.11
 ```
 
-### 4. 通过 OmniRT 启动 Wav2Lip
+### 4. 通过 OmniRT 启动 Wav2Lip 兼容路径
 
 CUDA：
 
@@ -204,7 +200,7 @@ source /usr/local/Ascend/ascend-toolkit/set_env.sh
 bash scripts/deploy_ascend_910b.sh
 ```
 
-### 5. 启动 OpenTalking
+### 5. 启动 OpenTalking 连接 OmniRT
 
 ```bash title="终端"
 bash scripts/quickstart/start_all.sh --omnirt http://127.0.0.1:9000

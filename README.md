@@ -210,52 +210,29 @@ bash scripts/quickstart/stop_all.sh
 
 ### 路径 2：轻量模型验证
 
-目标：验证 Avatar 资产、模型适配器和真实口型同步。轻量模型可走本地 adapter、单模型直连 WebSocket，或当前最稳妥的 OmniRT 兼容路径。
-
-先在同级目录安装 OmniRT，并把 Wav2Lip 权重放到 `$OMNIRT_MODEL_ROOT/wav2lip/`：
+目标：验证 Avatar 资产、模型适配器和本地口型驱动。默认 `wav2lip` 已走仓库内置 local adapter，不需要先安装 OmniRT 或下载 Wav2Lip checkpoint。
 
 ```bash
-export DIGITAL_HUMAN_HOME=/opt/digital_human
-export OMNIRT_MODEL_ROOT="$DIGITAL_HUMAN_HOME/models"
-
-mkdir -p "$DIGITAL_HUMAN_HOME"
-cd "$DIGITAL_HUMAN_HOME"
-git clone https://github.com/datascale-ai/omnirt.git
-cd omnirt
-uv sync --extra server --python 3.11
-source .venv/bin/activate
-uv pip install -U "huggingface_hub[cli]"
-
-export HF_ENDPOINT=https://hf-mirror.com
-hf auth login
-mkdir -p "$OMNIRT_MODEL_ROOT/wav2lip"
-hf download Pypa/wav2lip384 \
-  wav2lip384.pth \
-  --local-dir "$OMNIRT_MODEL_ROOT/wav2lip"
-hf download rippertnt/wav2lip \
-  s3fd.pth \
-  --local-dir "$OMNIRT_MODEL_ROOT/wav2lip"
+# 在 OpenTalking 仓库根目录
+bash scripts/quickstart/start_all.sh
+curl -s http://127.0.0.1:8000/models | jq '.statuses[] | select(.id=="wav2lip")'
 ```
 
-启动 Wav2Lip 兼容路径，再启动 OpenTalking：
+期望看到：
 
-```bash
-cd "$DIGITAL_HUMAN_HOME/opentalking"
-bash scripts/quickstart/start_omnirt_wav2lip.sh --device cuda
-curl http://127.0.0.1:9000/v1/audio2video/models
-bash scripts/quickstart/start_all.sh --omnirt http://127.0.0.1:9000
+```json
+{"id":"wav2lip","backend":"local","connected":true,"reason":"local_runtime"}
 ```
 
 如需自定义端口：
 
 ```bash
 bash scripts/quickstart/start_all.sh \
-  --omnirt http://127.0.0.1:9000 \
   --api-port 8010 \
   --web-port 5180
 ```
 
-如果 OmniRT 在远端 GPU / NPU 机器，把 `--omnirt` 改成 `http://<gpu-or-npu-server-ip>:9000`。
+如果需要 checkpoint-backed 的 Wav2Lip 兼容路径，仍可在远端 GPU / NPU 机器启动 OmniRT，并把 `OPENTALKING_WAV2LIP_BACKEND=omnirt` 与 `--omnirt http://<gpu-or-npu-server-ip>:9000` 配合使用。
 
 ### 路径 3：高质量私有化部署
 
@@ -286,7 +263,7 @@ bash scripts/deploy_ascend_910b.sh
 | 路径 | 推理 backend | GPU | 适合场景 |
 | --- | --- | --- | --- |
 | 快速体验 | 内置 Mock | 不需要 | 首次运行、前端调试、主链路验证 |
-| 轻量模型验证 | Local / direct WS / OmniRT lightweight model | 入门级 GPU 起 | Avatar / 模型适配开发 |
+| 轻量模型验证 | Local Wav2Lip / direct WS / OmniRT compatibility | CPU 可跑；重模型另需 GPU/NPU | Avatar / 模型适配开发 |
 | QuickTalk 实时路径 | Local QuickTalk adapter | CUDA GPU | 本地实时数字人和 LLM 对话 demo |
 | 高质量部署 | OmniRT + FlashTalk / FlashHead | 4090 / 910B | 私有化、生产、高质量画面 |
 
@@ -295,7 +272,7 @@ bash scripts/deploy_ascend_910b.sh
 | 模型 | 输入 | OpenTalking 集成方式 | 推荐路径 |
 | --- | --- | --- | --- |
 | `mock` | 参考图 | 内置静态帧 | 快速体验 |
-| `wav2lip` | frames + audio | 可插拔轻量口型 backend；local / direct backend 优先，OmniRT 作为兼容路径 | 轻量模型验证 |
+| `wav2lip` | frames/reference + audio | 内置 local adapter；OmniRT 作为 checkpoint-backed 兼容路径 | 轻量模型验证 |
 | `musetalk` | full frames + audio | 可插拔轻量 talking-head backend | 轻量模型验证 |
 | `quicktalk` | template video + audio | 本地实时 adapter，支持 Worker 缓存和 `/chat` | QuickTalk 实时路径 |
 | `soulx-flashtalk-14b` | portrait + audio | OmniRT 高质量 FlashTalk | 高质量部署 |
