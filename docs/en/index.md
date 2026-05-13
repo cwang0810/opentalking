@@ -15,7 +15,10 @@ synthesis, WebRTC delivery, and per-session control. Plug in the model and provi
 combination that fits the deployment; the orchestration contract stays the same.
 
 [Get started in five minutes :material-rocket-launch:](user-guide/quickstart.md){ .md-button .md-button--primary }
+[Stable docs URL :material-open-in-new:](https://datascale-ai.github.io/opentalking/){ .md-button }
 [View on GitHub :material-github:](https://github.com/datascale-ai/opentalking){ .md-button }
+
+The site defaults to Chinese. English lives at <https://datascale-ai.github.io/opentalking/en/>.
 
 ---
 

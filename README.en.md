@@ -41,6 +41,9 @@ OpenTalking focuses on the **pipeline orchestration layer** and supports both ex
 - **QuickTalk realtime path**: the local `quicktalk` adapter supports streaming LLM → sentence-level TTS → realtime lip rendering, with Worker caching to reduce first-turn startup cost.
 - **High-quality deployment**: connect `flashtalk` and other high-quality models through OmniRT for GPU / NPU private inference services.
 
+- Stable documentation URL: <https://datascale-ai.github.io/opentalking/>
+- Chinese documentation entry: <https://datascale-ai.github.io/opentalking/>
+
 ## Capabilities
 
 - **Real-time digital-human dialogue**: LLM reply, streaming TTS, subtitle events, status events, and WebRTC playback all happen in one pipeline.
