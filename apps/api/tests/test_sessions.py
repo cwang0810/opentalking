@@ -184,6 +184,16 @@ models:
         encoding="utf-8",
     )
     monkeypatch.setenv("OPENTALKING_CONFIG_FILE", str(config_file))
+    monkeypatch.setattr(
+        "opentalking.models.wav2lip.adapter.Wav2LipAdapter.runtime_available",
+        staticmethod(lambda: True),
+    )
+
+    def fake_create_runner(task, redis, avatars_root: Path, device: str) -> FakeRunner:
+        del avatars_root, device
+        return FakeRunner(session_id=str(task["session_id"]), redis=redis)
+
+    monkeypatch.setattr(task_consumer, "_create_runner", fake_create_runner)
     clear_model_config_cache()
 
     with TestClient(unified_main.create_app()) as client:
