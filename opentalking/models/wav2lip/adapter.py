@@ -442,7 +442,7 @@ class Wav2LipAdapter:
             return self._infer_legacy(features, avatar_state)
         payload = avatar_state.runtime.render_chunk(avatar_state.session, features.pcm_s16le)
         frames = _decode_jpeg_sequence(payload)
-        predictions: list[Wav2LipPrediction] = []
+        predictions: list[Wav2LipPrediction | _LegacyWav2LipPrediction] = []
         fps = max(1.0, float(avatar_state.manifest.fps))
         for frame in frames:
             predictions.append(
@@ -458,11 +458,11 @@ class Wav2LipAdapter:
         self,
         features: Wav2LipFeatures,
         avatar_state: FrameAvatarState,
-    ) -> list[_LegacyWav2LipPrediction]:
+    ) -> list[Wav2LipPrediction | _LegacyWav2LipPrediction]:
         extra = avatar_state.extra
         frame_index_start = int(extra.get("frame_index_start", 0) or 0)
         prev_open = float(extra.get("wav2lip_prev_open", 0.0) or 0.0)
-        predictions: list[_LegacyWav2LipPrediction] = []
+        predictions: list[Wav2LipPrediction | _LegacyWav2LipPrediction] = []
         frame_total = max(1, len(avatar_state.frames))
         for offset, energy in enumerate(np.asarray(features.frame_energy, dtype=np.float32).reshape(-1)):
             target = float(np.clip(energy, 0.0, 1.0))
