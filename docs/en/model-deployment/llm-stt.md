@@ -1,7 +1,7 @@
 # LLM and STT
 
 The LLM decides what the digital human says. STT is required only when users speak
-through the microphone; text-only `chat` and `speak` requests do not need STT.
+through the microphone; text-only `speak` requests do not need STT.
 
 ## LLM
 
@@ -23,7 +23,7 @@ Common alternatives:
 | Ollama | Use the Ollama OpenAI-compatible endpoint, usually `http://localhost:11434/v1`. |
 | DeepSeek | Use the provider's OpenAI-compatible base URL and model id. |
 
-Verify the API key and endpoint by starting OpenTalking and sending a text chat
+Verify the API key and endpoint by starting OpenTalking and sending a text `speak`
 request after creating a `mock` session.
 
 ## STT
@@ -37,7 +37,7 @@ OPENTALKING_STT_MODEL=paraformer-realtime-v2
 
 For DashScope-based deployments, `DASHSCOPE_API_KEY` and
 `OPENTALKING_LLM_API_KEY` can use the same key. If microphone input fails but text
-chat works, verify this key first.
+`speak` works, verify this key first.
 
 ## Verification
 

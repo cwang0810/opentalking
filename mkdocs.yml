@@ -64,29 +64,42 @@ plugins:
           build: true
           nav_translations:
             Home: 首页
-            User Guide: 用户指南
-            Developer Guide: 开发者指南
-            API Reference: API 参考
+            Tutorials: 教程
+            Cases: 案例
+            Model Deployment: 模型部署
+            Docs: 文档
+            API Interfaces: API 接口
             Quickstart: 快速上手
             Installation: 安装
-            From source: 源码安装
-            Docker Compose: Docker Compose 部署
             Configuration: 配置
+            Mock E2E: Mock 端到端
+            Wav2Lip Integration: Wav2Lip 接入
+            FlashTalk Integration: FlashTalk 接入
+            Custom Avatar: 自定义 Avatar
             Models: 模型
             Support Matrix: 支持矩阵
             LLM and STT: LLM 与 STT
             Text-to-Speech: 语音合成
             Avatar Assets: Avatar 资产
             Talking-Head Models: Talking-head 模型
+            Mock: Mock
+            Wav2Lip: Wav2Lip
+            MuseTalk: MuseTalk
+            QuickTalk: QuickTalk
+            FlashTalk: FlashTalk
+            FlashHead: FlashHead
             Deployment: 部署
             Avatar Format: Avatar 资产格式
             Render Pipeline: 渲染管线
-            Architecture: 架构
+            Architecture: 架构设计
             Developing: 开发流程
             Model Adapter: 模型适配器
             Contributing: 贡献指南
             Community: 社区
             Overview: 概览
+            Metrics: 指标定义
+            Runbook: 运行方法
+            Results and Baselines: 结果与基线
             Health and Models: 健康检查与模型
             Avatars: 数字人形象
             Sessions: 会话
@@ -131,33 +144,48 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - User Guide:
-      - Quickstart: user-guide/quickstart.md
-      - Installation:
-          - Overview: user-guide/installation.md
-          - From source: user-guide/install-from-source.md
-          - Docker Compose: user-guide/install-with-docker.md
-      - Configuration: user-guide/configuration.md
-  - Models:
+  - Tutorials:
+      - Overview: tutorials/index.md
+      - Quickstart: tutorials/quickstart.md
+      - Installation: tutorials/installation.md
+      - Configuration: tutorials/configuration.md
+      - Cases:
+          - Mock E2E: tutorials/cases/mock-e2e.md
+          - Wav2Lip Integration: tutorials/cases/wav2lip.md
+          - FlashTalk Integration: tutorials/cases/flashtalk.md
+          - Custom Avatar: tutorials/cases/custom-avatar.md
+  - Model Deployment:
       - Overview: model-deployment/index.md
       - Support Matrix: model-deployment/support-matrix.md
       - LLM and STT: model-deployment/llm-stt.md
       - Text-to-Speech: model-deployment/tts.md
       - Avatar Assets: model-deployment/avatar.md
-      - Talking-Head Models: model-deployment/talking-head.md
-  - Deployment: user-guide/deployment.md
-  - Developer Guide:
-      - Architecture: developer-guide/architecture.md
-      - Developing: developer-guide/developing.md
-      - Model Adapter: developer-guide/model-adapter.md
-      - Avatar Format: user-guide/avatar-format.md
-      - Render Pipeline: user-guide/render-pipeline.md
-      - Contributing: developer-guide/contributing.md
-  - API Reference:
-      - Overview: api-reference/index.md
-      - Health and Models: api-reference/health.md
-      - Avatars: api-reference/avatars.md
-      - Sessions: api-reference/sessions.md
-      - TTS and Voices: api-reference/tts-and-voices.md
-      - Events and Streaming: api-reference/events.md
-  - Community: about/community.md
+      - Talking-Head Models:
+          - Overview: model-deployment/talking-head.md
+          - Mock: model-deployment/mock.md
+          - Wav2Lip: model-deployment/wav2lip.md
+          - MuseTalk: model-deployment/musetalk.md
+          - QuickTalk: model-deployment/quicktalk.md
+          - FlashTalk: model-deployment/flashtalk.md
+          - FlashHead: model-deployment/flashhead.md
+      - Deployment: model-deployment/deployment.md
+  - Docs:
+      - Overview: docs/index.md
+      - Architecture: docs/architecture.md
+      - Render Pipeline: docs/render-pipeline.md
+      - Avatar Format: docs/avatar-format.md
+      - Model Adapter: docs/model-adapter.md
+      - Developing: docs/developing.md
+      - API Interfaces:
+          - Overview: docs/api/index.md
+          - Health and Models: docs/api/health.md
+          - Avatars: docs/api/avatars.md
+          - Sessions: docs/api/sessions.md
+          - TTS and Voices: docs/api/tts-and-voices.md
+          - Events and Streaming: docs/api/events.md
+  - Benchmark:
+      - Overview: benchmark/index.md
+      - Metrics: benchmark/metrics.md
+      - Runbook: benchmark/runbook.md
+      - Results and Baselines: benchmark/results.md
+  - Community: community/index.md

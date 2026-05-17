@@ -13,7 +13,7 @@ OpenTalking 本身**不是** talking-head 模型，而是把 talking-head 模型
 WebRTC 推送，以及按会话粒度的控制。模型与 provider 组合可按部署需要替换，编排契约
 保持不变。
 
-[5 分钟开始 :material-rocket-launch:](user-guide/quickstart.md){ .md-button .md-button--primary }
+[5 分钟开始 :material-rocket-launch:](tutorials/quickstart.md){ .md-button .md-button--primary }
 [在线文档固定地址 :material-open-in-new:](https://datascale-ai.github.io/opentalking/){ .md-button }
 [查看 GitHub 仓库 :material-github:](https://github.com/datascale-ai/opentalking){ .md-button }
 
@@ -72,7 +72,7 @@ REST 与 WebSocket 接口，并按会话所选模型把合成委托给对应 bac
 
     5 分钟流程：从源码克隆到 mock 合成路径下的首次端到端会话。
 
-    [快速上手 →](user-guide/quickstart.md)
+    [教程 →](tutorials/index.md)
 
 -   :material-cog: **配置说明**
 
@@ -80,39 +80,39 @@ REST 与 WebSocket 接口，并按会话所选模型把合成委托给对应 bac
 
     所有环境变量与 YAML 字段的参考，含默认值与优先级规则。
 
-    [配置 →](user-guide/configuration.md)
+    [配置 →](tutorials/configuration.md)
 
--   :material-server-network: **部署指南**
-
-    ---
-
-    覆盖单进程、API/Worker 分离、Docker Compose、昇腾 910B 的部署拓扑。
-
-    [部署 →](user-guide/deployment.md)
-
--   :material-api: **API 参考**
+-   :material-server-network: **模型部署**
 
     ---
 
-    REST、SSE 与 WebSocket 完整端点参考。
+    模型选择、权重下载、backend 配置和部署拓扑放在同一个入口。
 
-    [API 参考 →](api-reference/index.md)
+    [模型部署 →](model-deployment/index.md)
 
--   :material-puzzle: **模型适配器**
-
-    ---
-
-    将新 talking-head 模型集成到 OpenTalking 的指南。
-
-    [模型适配器 →](developer-guide/model-adapter.md)
-
--   :material-sitemap: **架构**
+-   :material-api: **文档与 API**
 
     ---
 
-    系统架构、会话生命周期、事件总线参考。
+    架构设计、渲染管线、模型适配器和 REST / SSE / WebSocket 接口。
 
-    [架构 →](developer-guide/architecture.md)
+    [文档 →](docs/index.md)
+
+-   :material-speedometer: **Benchmark**
+
+    ---
+
+    端到端体验指标、QuickTalk CLI、外部模型推理基线和结果模板。
+
+    [Benchmark →](benchmark/index.md)
+
+-   :material-account-group: **社区**
+
+    ---
+
+    参与贡献、Issue/PR 信息、QQ 群、Roadmap 和反馈模板。
+
+    [社区 →](community/index.md)
 
 </div>
 
@@ -164,7 +164,7 @@ flowchart LR
 ```
 
 完整系统视图（组件、部署拓扑、会话生命周期、事件总线 schema）见
-[架构](developer-guide/architecture.md)。
+[架构设计](docs/architecture.md)。
 
 ## OpenTalking 在生态中的定位
 
@@ -195,8 +195,8 @@ flowchart LR
 
 - **GitHub** —— [datascale-ai/opentalking](https://github.com/datascale-ai/opentalking)，提交 issue、pull request 与参与讨论。
 - **QQ 交流群** —— `1103327938`（AI 数字人交流群），以中文社区为主。
-- **文档** —— [用户指南](user-guide/quickstart.md)、[开发者指南](developer-guide/architecture.md)、[API 参考](api-reference/index.md)。
-- **参与贡献** —— 提交规范见 [贡献指南](developer-guide/contributing.md)。
+- **文档** —— [教程](tutorials/index.md)、[模型部署](model-deployment/index.md)、[文档与 API](docs/index.md)。
+- **参与贡献** —— 提交与反馈规范见 [社区](community/index.md)。
 
 ## 许可证
 

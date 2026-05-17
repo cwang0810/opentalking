@@ -28,13 +28,24 @@ flowchart LR
 
 ## Setup order
 
-1. Run [Quickstart](../user-guide/quickstart.md) with `mock`.
+1. Run [Quickstart](../tutorials/quickstart.md) with `mock`.
 2. Check the [Support Matrix](support-matrix.md) to choose the right path.
 3. Configure [LLM and STT](llm-stt.md).
 4. Choose and verify [TTS](tts.md).
 5. Prepare [Avatar assets](avatar.md).
 6. Start a [talking-head model](talking-head.md).
 7. Verify `/models`, create a session, and test through the browser.
+
+## Model Shortcuts
+
+| Goal | Entry |
+|------|-------|
+| End-to-end self-test with no weights | [Mock](mock.md) |
+| First real lip-sync model | [Wav2Lip](wav2lip.md) |
+| Existing MuseTalk runtime | [MuseTalk](musetalk.md) |
+| Local realtime adapter | [QuickTalk](quicktalk.md) |
+| High-quality heavy model | [FlashTalk](flashtalk.md) |
+| Standalone FlashHead service | [FlashHead](flashhead.md) |
 
 Keep model execution decoupled from OpenTalking itself: lightweight models should use
 `local` or `direct_ws` where possible, while OmniRT remains the recommended backend

@@ -28,13 +28,24 @@ flowchart LR
 
 ## 推荐顺序
 
-1. 用 [快速上手](../user-guide/quickstart.md) 跑通 `mock`。
+1. 用 [快速上手](../tutorials/quickstart.md) 跑通 `mock`。
 2. 先看 [支持矩阵](support-matrix.md)，选对部署路径。
 3. 配置 [LLM 与 STT](llm-stt.md)。
 4. 选择并验证 [TTS](tts.md)。
 5. 准备 [Avatar 资产](avatar.md)。
 6. 启动 [Talking-head 模型](talking-head.md)。
 7. 验证 `/models`，创建会话，并通过浏览器测试。
+
+## 模型快捷入口
+
+| 目标 | 入口 |
+|------|------|
+| 无权重端到端自测 | [Mock](mock.md) |
+| 第一个真实唇形模型 | [Wav2Lip](wav2lip.md) |
+| 已有 MuseTalk runtime | [MuseTalk](musetalk.md) |
+| 本地实时 adapter | [QuickTalk](quicktalk.md) |
+| 高质量重模型 | [FlashTalk](flashtalk.md) |
+| 独立 FlashHead 服务 | [FlashHead](flashhead.md) |
 
 模型执行应与 OpenTalking 编排层解耦：轻量模型优先使用 `local` 或 `direct_ws`，OmniRT
 保留为重模型、多卡、远端或 NPU 部署的推荐 backend。

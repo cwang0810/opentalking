@@ -1,6 +1,6 @@
 # LLM 与 STT
 
-LLM 决定数字人说什么。STT 只在用户通过麦克风说话时需要；纯文本 `chat` 和 `speak`
+LLM 决定数字人说什么。STT 只在用户通过麦克风说话时需要；纯文本 `speak`
 请求不依赖 STT。
 
 ## LLM

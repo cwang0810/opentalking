@@ -14,7 +14,7 @@ requires: streaming speech recognition, large language models, text-to-speech
 synthesis, WebRTC delivery, and per-session control. Plug in the model and provider
 combination that fits the deployment; the orchestration contract stays the same.
 
-[Get started in five minutes :material-rocket-launch:](user-guide/quickstart.md){ .md-button .md-button--primary }
+[Get started in five minutes :material-rocket-launch:](tutorials/quickstart.md){ .md-button .md-button--primary }
 [Stable docs URL :material-open-in-new:](https://datascale-ai.github.io/opentalking/){ .md-button }
 [View on GitHub :material-github:](https://github.com/datascale-ai/opentalking){ .md-button }
 
@@ -78,7 +78,7 @@ or a mock path for tests.
     Five-minute walkthrough from source checkout to a working end-to-end session
     using the mock synthesis path.
 
-    [Quickstart →](user-guide/quickstart.md)
+    [Tutorials →](tutorials/index.md)
 
 -   :material-cog: **Configuration**
 
@@ -87,40 +87,43 @@ or a mock path for tests.
     Reference for every environment variable and YAML field, with default values
     and precedence rules.
 
-    [Configuration →](user-guide/configuration.md)
+    [Configuration →](tutorials/configuration.md)
 
--   :material-server-network: **Deployment**
-
-    ---
-
-    Deployment topologies covering single-process, API/Worker split, Docker
-    Compose, and Ascend 910B.
-
-    [Deployment →](user-guide/deployment.md)
-
--   :material-api: **API Reference**
+-   :material-server-network: **Model deployment**
 
     ---
 
-    Complete REST, Server-Sent Events, and WebSocket reference for all endpoints.
+    Model selection, weight downloads, backend configuration, and deployment
+    topologies in one place.
 
-    [API Reference →](api-reference/index.md)
+    [Model deployment →](model-deployment/index.md)
 
--   :material-puzzle: **Model Adapter**
-
-    ---
-
-    Integration guide for adding a new talking-head model to OpenTalking.
-
-    [Model Adapter →](developer-guide/model-adapter.md)
-
--   :material-sitemap: **Architecture**
+-   :material-api: **Docs and API**
 
     ---
 
-    System architecture, session lifecycle, and event bus reference.
+    Architecture, render pipeline, model adapters, and REST / SSE / WebSocket
+    interfaces.
 
-    [Architecture →](developer-guide/architecture.md)
+    [Docs →](docs/index.md)
+
+-   :material-speedometer: **Benchmark**
+
+    ---
+
+    End-to-end metrics, the QuickTalk CLI, external inference baselines, and a
+    result template.
+
+    [Benchmark →](benchmark/index.md)
+
+-   :material-account-group: **Community**
+
+    ---
+
+    Contribution paths, Issue/PR information, the QQ group, roadmap links, and a
+    feedback template.
+
+    [Community →](community/index.md)
 
 </div>
 
@@ -174,7 +177,7 @@ flowchart LR
 ```
 
 The complete system view — components, deployment topologies, session lifecycle,
-and event bus schema — is documented in [Architecture](developer-guide/architecture.md).
+and event bus schema — is documented in [Architecture](docs/architecture.md).
 
 ## Where OpenTalking fits
 
@@ -205,8 +208,8 @@ and event bus schema — is documented in [Architecture](developer-guide/archite
 
 - **GitHub** — [datascale-ai/opentalking](https://github.com/datascale-ai/opentalking) for issues, pull requests, and discussions.
 - **QQ group** — `1103327938` (AI 数字人交流群), primarily Chinese-language community.
-- **Documentation** — [User Guide](user-guide/quickstart.md), [Developer Guide](developer-guide/architecture.md), [API Reference](api-reference/index.md).
-- **Contributing** — see the [Contributing](developer-guide/contributing.md) guide for submission guidelines.
+- **Documentation** — [Tutorials](tutorials/index.md), [Model deployment](model-deployment/index.md), [Docs and API](docs/index.md).
+- **Contributing** — see [Community](community/index.md) for submission and feedback guidelines.
 
 ## License
 
