@@ -115,6 +115,10 @@ def _string_list(raw: Any) -> list[str]:
     return out
 
 
+def _object(raw: Any) -> dict[str, Any]:
+    return raw if isinstance(raw, dict) else {}
+
+
 def persona_from_dict(raw: dict[str, Any]) -> PersonaManifest:
     if not isinstance(raw, dict):
         raise ValueError("persona manifest must be a JSON object")
@@ -131,10 +135,10 @@ def persona_from_dict(raw: dict[str, Any]) -> PersonaManifest:
         path=_optional_str(avatar_raw.get("path"), max_len=256),
     )
 
-    voice_raw = raw.get("voice") if isinstance(raw.get("voice"), dict) else {}
-    agent_raw = raw.get("agent") if isinstance(raw.get("agent"), dict) else {}
-    runtime_raw = raw.get("runtime") if isinstance(raw.get("runtime"), dict) else {}
-    safety_raw = raw.get("safety") if isinstance(raw.get("safety"), dict) else {}
+    voice_raw = _object(raw.get("voice"))
+    agent_raw = _object(raw.get("agent"))
+    runtime_raw = _object(raw.get("runtime"))
+    safety_raw = _object(raw.get("safety"))
 
     return PersonaManifest(
         schema_version=PERSONA_SCHEMA_VERSION,
