@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import type { AvatarSummary, KnowledgeBaseSummary } from "../lib/api";
+import type { AvatarSummary, KnowledgeBaseSummary, PersonaSummary } from "../lib/api";
 import { buildApiUrl } from "../lib/api";
 import type { ModelConnectionBadge } from "../lib/modelStatus";
 
@@ -30,6 +30,11 @@ type AvatarSelectionStageProps = {
   agentConfig: AgentConfig;
   onAgentConfigChange: (next: AgentConfig) => void;
   knowledgeBases: KnowledgeBaseSummary[];
+  personas: PersonaSummary[];
+  selectedPersonaId: string;
+  personaImporting?: boolean;
+  onPersonaChange: (personaId: string) => void;
+  onPersonaImport: (file: File) => void;
 };
 
 function AvatarPreviewImage({ avatar, className }: { avatar: AvatarSummary; className: string }) {
@@ -77,8 +82,14 @@ export function AvatarSelectionStage({
   agentConfig,
   onAgentConfigChange,
   knowledgeBases,
+  personas,
+  selectedPersonaId,
+  personaImporting = false,
+  onPersonaChange,
+  onPersonaImport,
 }: AvatarSelectionStageProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const personaInputRef = useRef<HTMLInputElement>(null);
   const [customUploadOpen, setCustomUploadOpen] = useState(false);
   const [customName, setCustomName] = useState(() => {
     try {
@@ -90,6 +101,7 @@ export function AvatarSelectionStage({
   const [customFile, setCustomFile] = useState<File | null>(null);
   const [customPreviewUrl, setCustomPreviewUrl] = useState<string | null>(null);
   const selectedKnowledgeBaseIds = agentConfig.knowledgeBaseIds;
+  const selectedPersona = personas.find((persona) => persona.id === selectedPersonaId) ?? null;
   const knowledgeBasesById = new Map(knowledgeBases.map((kb) => [kb.id, kb]));
   const selectedKnowledgeBases = selectedKnowledgeBaseIds.map((id) => (
     knowledgeBasesById.get(id) ?? {
@@ -102,6 +114,7 @@ export function AvatarSelectionStage({
       updated_at: "",
     }
   ));
+  const configDisabled = loading || queued || prewarmState === "preparing";
   const baseDisabled = loading || queued || prewarmState === "preparing" || !selectedAvatar || !modelConnected;
   const startLabel = queued
     ? "排队中"
@@ -136,6 +149,12 @@ export function AvatarSelectionStage({
     }
     onCustomAvatarCreate(customFile, name);
     setCustomUploadOpen(false);
+  };
+
+  const handlePersonaFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] ?? null;
+    event.target.value = "";
+    if (file) onPersonaImport(file);
   };
 
   const updateKnowledgeBaseIds = (nextIds: string[]) => {
@@ -280,6 +299,51 @@ export function AvatarSelectionStage({
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-slate-950/65 to-transparent" />
               </div>
               <div className="border-t border-slate-200 bg-white p-4">
+                <div className="mb-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <p className="text-xs font-semibold text-slate-600">Persona</p>
+                    <button
+                      type="button"
+                      disabled={configDisabled || personaImporting}
+                      onClick={() => personaInputRef.current?.click()}
+                      className="rounded-md border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 transition hover:border-cyan-200 hover:text-cyan-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {personaImporting ? "导入中..." : "导入"}
+                    </button>
+                    <input
+                      ref={personaInputRef}
+                      type="file"
+                      accept=".otpersona,.zip,application/zip"
+                      className="hidden"
+                      tabIndex={-1}
+                      aria-hidden
+                      onChange={handlePersonaFileChange}
+                    />
+                  </div>
+                  <select
+                    value={selectedPersonaId}
+                    disabled={configDisabled || personaImporting}
+                    onChange={(event) => onPersonaChange(event.target.value)}
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-800 outline-none transition focus:border-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <option value="">未选择 Persona</option>
+                    {personas.map((persona) => (
+                      <option key={persona.id} value={persona.id}>
+                        {persona.name}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedPersona ? (
+                    <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-slate-500">
+                      <span className="truncate rounded-md bg-white px-2 py-1">
+                        {selectedPersona.locale}
+                      </span>
+                      <span className="truncate rounded-md bg-white px-2 py-1">
+                        {selectedPersona.avatar.model}
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
                 <div className="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                     <div className="flex items-center justify-between gap-2">

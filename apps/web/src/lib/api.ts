@@ -103,6 +103,12 @@ export async function apiPostForm<T>(path: string, form: FormData, init?: Reques
   return r.json() as Promise<T>;
 }
 
+export async function apiUploadFile<T>(path: string, fieldName: string, file: File): Promise<T> {
+  const form = new FormData();
+  form.set(fieldName, file);
+  return apiPostForm<T>(path, form);
+}
+
 export type ExportVideoKind = "realtime_dialogue" | "video_clone" | "video_creation";
 
 export type ExportVideoItem = {
@@ -241,8 +247,9 @@ export type AvatarKnowledgeBasesRequest = {
 };
 
 export type CreateSessionRequest = {
-  avatar_id: string;
-  model: string;
+  persona_id?: string;
+  avatar_id?: string;
+  model?: string;
   llm_system_prompt?: string;
   tts_provider: string;
   stt_provider: string;
@@ -255,6 +262,48 @@ export type CreateSessionRequest = {
   knowledge_enabled: boolean;
   knowledge_base_id: string;
   knowledge_base_ids: string[];
+};
+
+export type PersonaSummary = {
+  schema_version: string;
+  id: string;
+  name: string;
+  description: string;
+  locale: string;
+  avatar: {
+    id: string;
+    model: string;
+    path?: string | null;
+  };
+  voice: {
+    provider?: string | null;
+    voice_id?: string | null;
+    model?: string | null;
+  };
+  agent: {
+    system_prompt?: string | null;
+    style_prompt?: string | null;
+    memory_enabled: boolean;
+    knowledge_enabled: boolean;
+    knowledge_base_ids: string[];
+  };
+  runtime: {
+    stt_provider?: string | null;
+    tts_provider?: string | null;
+    preferred_backend?: string | null;
+  };
+  safety: {
+    authorized_avatar: boolean;
+    authorized_voice: boolean;
+    content_label_required: boolean;
+  };
+  created_at: string;
+  updated_at: string;
+  source: string;
+};
+
+export type PersonasResponse = {
+  personas: PersonaSummary[];
 };
 
 export type AvatarSummary = {

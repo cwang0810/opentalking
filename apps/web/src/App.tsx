@@ -26,6 +26,7 @@ import {
   apiPost,
   apiPostForm,
   apiPut,
+  apiUploadFile,
   buildApiUrl,
   uploadExportVideo,
   type AvatarKnowledgeBasesResponse,
@@ -34,6 +35,8 @@ import {
   type CreateSessionResponse,
   type KnowledgeBaseSummary,
   type KnowledgeBasesResponse,
+  type PersonaSummary,
+  type PersonasResponse,
   type VoiceCatalogItem,
 } from "./lib/api";
 import { modelConnectionBadge, type ModelStatus } from "./lib/modelStatus";
@@ -167,6 +170,7 @@ const VIDEO_CREATION_FASTLIVEPORTRAIT_CONFIG_STORAGE_KEY = "opentalking-video-cr
 const ASR_PROVIDER_STORAGE_KEY = "opentalking-asr-provider-v1";
 const CLIENT_USER_ID_KEY = "opentalking-client-user-id";
 const AGENT_CONFIG_STORAGE_KEY = "opentalking-agent-config-v1";
+const SELECTED_PERSONA_STORAGE_KEY = "opentalking-selected-persona-id-v1";
 const LEGACY_FASTLIVEPORTRAIT_DEFAULT_CONFIG: FasterLivePortraitConfig = {
   head_motion_multiplier: 1.0,
   pose_motion_multiplier: 0.35,
@@ -435,6 +439,22 @@ function writeStoredAgentConfig(config: AgentConfig): void {
   } catch {
     /* ignore */
   }
+}
+
+function normalizeTtsProvider(value: string | null | undefined, fallback: TtsProviderExtended = "edge"): TtsProviderExtended {
+  const normalized = (value ?? "").trim();
+  if (
+    normalized === "edge" ||
+    normalized === "dashscope" ||
+    normalized === "cosyvoice" ||
+    normalized === "sambert" ||
+    normalized === "local_cosyvoice" ||
+    normalized === "xiaomi_mimo" ||
+    normalized === "openai_compatible"
+  ) {
+    return normalized;
+  }
+  return fallback;
 }
 
 function apiErrorMessage(error: unknown, fallback: string): string {
@@ -817,6 +837,16 @@ export default function App() {
   const [modelStatuses, setModelStatuses] = useState<ModelStatus[]>([]);
   const [avatarId, setAvatarId] = useState(() => readStoredAvatarId() ?? "singer");
   const [model, setModel] = useState("flashtalk");
+  const [selectedPersonaId, setSelectedPersonaId] = useState<string>(() => {
+    try {
+      return window.localStorage.getItem(SELECTED_PERSONA_STORAGE_KEY) ?? "";
+    } catch {
+      return "";
+    }
+  });
+  const [personas, setPersonas] = useState<PersonaSummary[]>([]);
+  const [personaImporting, setPersonaImporting] = useState(false);
+  const appliedPersonaIdRef = useRef("");
   const [prewarmByKey, setPrewarmByKey] = useState<Record<string, PrewarmState>>({});
   const prewarmInFlightRef = useRef<Map<string, Promise<boolean>>>(new Map());
   const prewarmSeqRef = useRef(0);
@@ -1017,6 +1047,29 @@ export default function App() {
     }
   }, [notify]);
 
+  const refreshPersonas = useCallback(async () => {
+    try {
+      const response = await apiGet<PersonasResponse>("/personas");
+      const next = Array.isArray(response.personas) ? response.personas : [];
+      setPersonas(next);
+      setSelectedPersonaId((current) => {
+        if (!current || next.some((persona) => persona.id === current)) {
+          return current;
+        }
+        try {
+          window.localStorage.removeItem(SELECTED_PERSONA_STORAGE_KEY);
+        } catch {
+          /* ignore */
+        }
+        return "";
+      });
+    } catch (error) {
+      console.warn("load personas failed", error);
+      const detail = error instanceof ApiError ? error.detail : null;
+      notify(detail ? `Persona 列表读取失败：${detail}` : "Persona 列表读取失败，请查看后端日志。", "error");
+    }
+  }, [notify]);
+
   const refreshAvatarKnowledgeBases = useCallback(async (targetAvatarId: string) => {
     if (!targetAvatarId) return;
     const seq = ++avatarKnowledgeBasesLoadSeqRef.current;
@@ -1063,10 +1116,16 @@ export default function App() {
   }, [refreshKnowledgeBases, workflow]);
 
   useEffect(() => {
-    void refreshAvatarKnowledgeBases(avatarId);
-  }, [avatarId, refreshAvatarKnowledgeBases]);
+    if (workflow === "realtime") void refreshPersonas();
+  }, [refreshPersonas, workflow]);
 
   useEffect(() => {
+    if (selectedPersonaId) return;
+    void refreshAvatarKnowledgeBases(avatarId);
+  }, [avatarId, refreshAvatarKnowledgeBases, selectedPersonaId]);
+
+  useEffect(() => {
+    if (selectedPersonaId) return;
     if (!avatarKnowledgeBasesSyncReadyRef.current || !avatarId) return;
     const selectedIds = normalizeKnowledgeBaseIds(agentConfig.knowledgeBaseIds);
     const lastPersisted = lastPersistedAvatarKnowledgeBasesRef.current.get(avatarId) ?? [];
@@ -1095,7 +1154,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [agentConfig.knowledgeBaseIds, avatarId, notify]);
+  }, [agentConfig.knowledgeBaseIds, avatarId, notify, selectedPersonaId]);
 
   const cleanupRealtimeRecordStreams = useCallback(() => {
     if (realtimeRecordMicStreamRef.current) {
@@ -1775,6 +1834,7 @@ export default function App() {
     try {
       const knowledgeBaseIds = normalizeKnowledgeBaseIds(agentConfig.knowledgeBaseIds);
       const created = await apiPost<CreateSessionResponse>("/sessions", {
+        persona_id: selectedPersonaId || undefined,
         avatar_id: avatarId,
         model,
         llm_system_prompt: llmSystemPrompt.trim() || undefined,
@@ -1871,6 +1931,7 @@ export default function App() {
     releaseSession,
     requestAvatarPrewarm,
     resetLiveState,
+    selectedPersonaId,
     selectedModelConnected,
     selectedPrewarmState,
     ttsProvider,
@@ -2214,6 +2275,12 @@ export default function App() {
   const handleAvatarChange = useCallback(
     (newId: string) => {
       clearSubtitleState();
+      setSelectedPersonaId("");
+      try {
+        window.localStorage.removeItem(SELECTED_PERSONA_STORAGE_KEY);
+      } catch {
+        /* ignore */
+      }
       setAvatarId(newId);
       writeStoredAvatarId(newId);
       void (async () => {
@@ -2228,6 +2295,103 @@ export default function App() {
     [clearSubtitleState, releaseSession, resetLiveState],
   );
 
+  const applyPersona = useCallback((persona: PersonaSummary | null) => {
+    clearSubtitleState();
+    if (!persona) {
+      setSelectedPersonaId("");
+      appliedPersonaIdRef.current = "";
+      try {
+        window.localStorage.removeItem(SELECTED_PERSONA_STORAGE_KEY);
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
+    setSelectedPersonaId(persona.id);
+    appliedPersonaIdRef.current = persona.id;
+    try {
+      window.localStorage.setItem(SELECTED_PERSONA_STORAGE_KEY, persona.id);
+    } catch {
+      /* ignore */
+    }
+    setAvatarId(persona.avatar.id);
+    writeStoredAvatarId(persona.avatar.id);
+    setModel(persona.avatar.model);
+    const nextTtsProvider = normalizeTtsProvider(persona.runtime.tts_provider ?? persona.voice.provider, ttsProvider);
+    setTtsProvider(nextTtsProvider);
+    if (persona.voice.model) {
+      setQwenModel(persona.voice.model);
+    }
+    if (persona.voice.voice_id) {
+      if (nextTtsProvider === "edge") {
+        setEdgeVoice(persona.voice.voice_id);
+      } else {
+        setQwenVoice(persona.voice.voice_id);
+      }
+    }
+    if (persona.runtime.stt_provider) {
+      const normalizedAsr = normalizeAsrProvider(persona.runtime.stt_provider, "dashscope");
+      setAsrProvider(normalizedAsr);
+      setAsrModel(sttModelForProvider(normalizedAsr));
+    }
+    setAgentConfig({
+      memoryEnabled: persona.agent.memory_enabled,
+      knowledgeEnabled: persona.agent.knowledge_enabled,
+      knowledgeBaseIds: normalizeKnowledgeBaseIds(persona.agent.knowledge_base_ids),
+    });
+    void (async () => {
+      const sid = sessionIdRef.current;
+      if (sid) {
+        await releaseSession(sid);
+      }
+      resetLiveState(true);
+      setConnection("idle");
+    })();
+  }, [
+    clearSubtitleState,
+    releaseSession,
+    resetLiveState,
+    setAgentConfig,
+    ttsProvider,
+  ]);
+
+  const handlePersonaChange = useCallback((personaId: string) => {
+    if (!personaId) {
+      applyPersona(null);
+      return;
+    }
+    const persona = personas.find((item) => item.id === personaId) ?? null;
+    if (!persona) return;
+    applyPersona(persona);
+  }, [applyPersona, personas]);
+
+  const handlePersonaImport = useCallback(async (file: File) => {
+    setPersonaImporting(true);
+    try {
+      const imported = await apiUploadFile<PersonaSummary>("/personas/import", "file", file);
+      setPersonas((prev) => {
+        const filtered = prev.filter((item) => item.id !== imported.id);
+        return [...filtered, imported].sort((a, b) => a.name.localeCompare(b.name));
+      });
+      applyPersona(imported);
+      await refreshKnowledgeBases();
+      notify(`Persona 已导入：${imported.name}`, "success");
+    } catch (error) {
+      console.warn("persona import failed", error);
+      notify(apiErrorMessage(error, "Persona 导入失败，请检查包格式。"), "error");
+    } finally {
+      setPersonaImporting(false);
+    }
+  }, [applyPersona, notify, refreshKnowledgeBases]);
+
+  useEffect(() => {
+    if (!selectedPersonaId || appliedPersonaIdRef.current === selectedPersonaId) return;
+    const persona = personas.find((item) => item.id === selectedPersonaId);
+    if (persona) {
+      applyPersona(persona);
+    }
+  }, [applyPersona, personas, selectedPersonaId]);
+
   const handleVideoCloneAvatarUploaded = useCallback(
     (created: AvatarSummary) => {
       setAvatars((prev) => {
@@ -2241,6 +2405,12 @@ export default function App() {
 
   const handleModelChange = useCallback((newModel: string) => {
     clearSubtitleState();
+    setSelectedPersonaId("");
+    try {
+      window.localStorage.removeItem(SELECTED_PERSONA_STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
     setModel(newModel);
     void (async () => {
       const sid = sessionIdRef.current;
@@ -2519,6 +2689,11 @@ export default function App() {
                     agentConfig={agentConfig}
                     onAgentConfigChange={setAgentConfig}
                     knowledgeBases={knowledgeBaseSummaries}
+                    personas={personas}
+                    selectedPersonaId={selectedPersonaId}
+                    personaImporting={personaImporting}
+                    onPersonaChange={handlePersonaChange}
+                    onPersonaImport={handlePersonaImport}
                     onAvatarChange={handleAvatarChange}
                     onStart={() => void handleStart()}
                     onCustomAvatarCreate={(file, name) => void handleCreateCustomAvatar(file, name)}

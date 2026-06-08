@@ -52,6 +52,7 @@ OmniRT 等真实模型和推理后端。
 
 - [Quick Start](quick-start/index.md)：首次运行 OpenTalking，使用 `mock` backend 跑通最小链路。
 - [Usage](usage/index.md)：学习命令行启动、WebUI 使用、Avatar 配置和音色/TTS 配置。
+- [Persona Package](usage/persona-package.md)：导入、校验和运行完整数字人 Agent 交付包。
 - [Examples](examples/index.md)：从 AI 客服、商品讲解、课程口播等场景理解 OpenTalking 的应用方式。
 - [Model Support](model-support/index.md)：了解模型、推理后端和生产拓扑，例如 Wav2Lip、QuickTalk、FlashTalk 和 OmniRT。
 - [参考资料](reference/index.md)：查看 Benchmark、性能指标和更新日志。

@@ -57,6 +57,7 @@ with [Model Support](model-support/index.md).
 
 - [Quick Start](quick-start/index.md): run OpenTalking for the first time with the `mock` backend.
 - [Usage](usage/index.md): learn command-line startup, WebUI usage, avatar configuration, and voice/TTS settings.
+- [Persona Package](usage/persona-package.md): import, validate, and run portable digital-human Agent bundles.
 - [Examples](examples/index.md): understand how OpenTalking applies to customer support, product demos, course presenters, and similar scenarios.
 - [Model Support](model-support/index.md): review models, runtime backends, and production topology such as Wav2Lip, QuickTalk, FlashTalk, and OmniRT.
 - [Reference Materials](reference/index.md): review benchmark metrics and changelog entries.

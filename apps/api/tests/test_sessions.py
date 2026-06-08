@@ -519,6 +519,184 @@ def test_agent_session_config_defaults_to_no_knowledge_base() -> None:
     assert knowledge_base_ids == []
 
 
+def test_create_session_expands_persona_defaults(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    calls: list[dict[str, object]] = []
+
+    async def fake_create_session(*args: object, **kwargs: object) -> str:
+        calls.append(kwargs)
+        sid = "sess_persona"
+        redis = args[0]
+        await redis.hset(
+            session_key(sid),
+            mapping={
+                "session_id": sid,
+                "avatar_id": kwargs["avatar_id"],
+                "model": kwargs["model"],
+                "state": "worker_ready",
+            },
+        )
+        return sid
+
+    async def fake_connected_model_ids(_settings: object) -> set[str]:
+        return {"mock"}
+
+    persona_dir = tmp_path / "personas" / "customer-support-zh"
+    (persona_dir / "prompts").mkdir(parents=True)
+    (persona_dir / "prompts" / "system.md").write_text("你是客服数字人。", encoding="utf-8")
+    (persona_dir / "persona.json").write_text(
+        """
+{
+  "schema_version": "0.1",
+  "id": "customer-support-zh",
+  "name": "客服",
+  "description": "客服 Persona",
+  "locale": "zh-CN",
+  "avatar": {"id": "singer", "model": "mock"},
+  "voice": {"provider": "edge", "voice_id": "zh-CN-XiaoxiaoNeural"},
+  "agent": {
+    "system_prompt": "prompts/system.md",
+    "memory_enabled": true,
+    "knowledge_enabled": true,
+    "knowledge_base_ids": ["kb_persona"]
+  },
+  "runtime": {"stt_provider": "sensevoice", "tts_provider": "edge"},
+  "safety": {"authorized_avatar": true, "authorized_voice": true, "content_label_required": true}
+}
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(sessions_routes.session_service, "create_session", fake_create_session)
+    monkeypatch.setattr(
+        "opentalking.providers.synthesis.availability.connected_model_ids",
+        fake_connected_model_ids,
+    )
+
+    avatars_dir = Path(__file__).resolve().parents[3] / "examples" / "avatars"
+    app = FastAPI()
+    app.state.redis = InMemoryRedis()
+    app.state.settings = SimpleNamespace(
+        avatars_dir=str(avatars_dir),
+        persona_root=str(tmp_path / "personas"),
+        normalized_stt_default_provider="sensevoice",
+        normalized_stt_provider="sensevoice",
+        normalized_tts_default_provider="edge",
+        normalized_tts_provider="edge",
+        omnirt_endpoint="",
+    )
+    request = Request({"type": "http", "app": app})
+
+    response = asyncio.run(
+        sessions_routes.create_session(
+            CreateSessionRequest(persona_id="customer-support-zh", user_id="client_test"),
+            request,
+        )
+    )
+
+    assert response.status == "created"
+    assert calls[0]["persona_id"] == "customer-support-zh"
+    assert calls[0]["avatar_id"] == "singer"
+    assert calls[0]["model"] == "mock"
+    assert calls[0]["tts_provider"] == "edge"
+    assert calls[0]["stt_provider"] == "sensevoice"
+    assert calls[0]["tts_voice"] == "zh-CN-XiaoxiaoNeural"
+    assert calls[0]["llm_system_prompt"] == "你是客服数字人。"
+    assert calls[0]["memory_enabled"] is True
+    assert calls[0]["knowledge_base_ids"] == ["kb_persona"]
+
+
+def test_create_session_allows_explicit_fields_to_override_persona(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    calls: list[dict[str, object]] = []
+
+    async def fake_create_session(*args: object, **kwargs: object) -> str:
+        calls.append(kwargs)
+        sid = "sess_persona_override"
+        redis = args[0]
+        await redis.hset(
+            session_key(sid),
+            mapping={
+                "session_id": sid,
+                "avatar_id": kwargs["avatar_id"],
+                "model": kwargs["model"],
+                "state": "worker_ready",
+            },
+        )
+        return sid
+
+    async def fake_connected_model_ids(_settings: object) -> set[str]:
+        return {"mock", "flashtalk"}
+
+    persona_dir = tmp_path / "personas" / "support"
+    persona_dir.mkdir(parents=True)
+    (persona_dir / "persona.json").write_text(
+        """
+{
+  "schema_version": "0.1",
+  "id": "support",
+  "name": "客服",
+  "description": "客服 Persona",
+  "locale": "zh-CN",
+  "avatar": {"id": "singer", "model": "mock"},
+  "voice": {"provider": "edge", "voice_id": "zh-CN-XiaoxiaoNeural"},
+  "agent": {"memory_enabled": true, "knowledge_enabled": true, "knowledge_base_ids": ["kb_persona"]},
+  "runtime": {"stt_provider": "sensevoice", "tts_provider": "edge"},
+  "safety": {"authorized_avatar": true, "authorized_voice": true, "content_label_required": true}
+}
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(sessions_routes.session_service, "create_session", fake_create_session)
+    monkeypatch.setattr(
+        "opentalking.providers.synthesis.availability.connected_model_ids",
+        fake_connected_model_ids,
+    )
+
+    avatars_dir = Path(__file__).resolve().parents[3] / "examples" / "avatars"
+    app = FastAPI()
+    app.state.redis = InMemoryRedis()
+    app.state.settings = SimpleNamespace(
+        avatars_dir=str(avatars_dir),
+        persona_root=str(tmp_path / "personas"),
+        normalized_stt_default_provider="sensevoice",
+        normalized_stt_provider="sensevoice",
+        normalized_tts_default_provider="edge",
+        normalized_tts_provider="edge",
+        omnirt_endpoint="",
+    )
+    request = Request({"type": "http", "app": app})
+
+    response = asyncio.run(
+        sessions_routes.create_session(
+            CreateSessionRequest(
+                persona_id="support",
+                avatar_id="anchor",
+                model="flashtalk",
+                llm_system_prompt="显式提示词",
+                knowledge_base_ids=["kb_override"],
+                memory_enabled=False,
+                user_id="client_test",
+            ),
+            request,
+        )
+    )
+
+    assert response.status == "created"
+    assert calls[0]["avatar_id"] == "anchor"
+    assert calls[0]["model"] == "flashtalk"
+    assert calls[0]["llm_system_prompt"] == "显式提示词"
+    assert calls[0]["knowledge_base_ids"] == ["kb_override"]
+    assert calls[0]["memory_enabled"] is False
+
+
 def test_speak_audio_passes_request_level_stt_provider(
     unified_client: TestClient,
     monkeypatch: pytest.MonkeyPatch,

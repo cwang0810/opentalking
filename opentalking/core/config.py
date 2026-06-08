@@ -60,6 +60,7 @@ def _flatten_config(raw: dict[str, Any] | None) -> dict[str, Any]:
         "agent": {
             "memory_sqlite_path": "agent_memory_sqlite_path",
             "knowledge_root": "agent_knowledge_root",
+            "persona_root": "persona_root",
         },
         "tts": {
             "default_provider": "tts_default_provider",
@@ -337,6 +338,8 @@ class Settings(BaseSettings):
     agent_memory_sqlite_path: str = Field(default="./data/agent_memory.sqlite")
     #: Agent 默认知识库原始文档目录；默认 ./data/knowledge
     agent_knowledge_root: str = Field(default="./data/knowledge")
+    #: Persona Package 本地存储目录；默认 ./data/personas
+    persona_root: str = Field(default="./data/personas")
 
     #: CosyVoice 复刻时，百炼需拉取公网 URL；若留空则用请求的 Host 拼 URL（内网部署请填公网可达地址）
     public_base_url: str = ""

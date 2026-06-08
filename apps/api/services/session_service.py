@@ -53,6 +53,7 @@ def _normalize_knowledge_base_ids(
 async def create_session(
     r: redis.Redis,
     *,
+    persona_id: str | None = None,
     avatar_id: str,
     model: str,
     tts_provider: str | None = None,
@@ -81,6 +82,8 @@ async def create_session(
         "model": model,
         "state": "created",
     }
+    if persona_id:
+        data["persona_id"] = persona_id
     if tts_provider:
         data["tts_provider"] = tts_provider
     if stt_provider:
@@ -111,6 +114,8 @@ async def create_session(
         "avatar_id": avatar_id,
         "model": model,
     }
+    if persona_id:
+        init_task["persona_id"] = persona_id
     if tts_provider:
         init_task["tts_provider"] = tts_provider
     if stt_provider:

@@ -166,11 +166,13 @@ def _create_runner(
     model = str(task.get("model", ""))
     sid = str(task["session_id"])
     avatar_id = str(task["avatar_id"])
+    persona_id = str(task.get("persona_id", "") or "").strip() or None
     settings = get_settings()
     backend = resolve_model_backend(model, settings)
     knowledge_base_ids = _task_knowledge_base_ids(task)
     agent_kwargs = {
         "agent_user_id": str(task.get("user_id", "") or "").strip() or None,
+        "persona_id": persona_id,
         "agent_enabled": _task_bool(task, "agent_enabled"),
         "memory_enabled": _task_bool(task, "memory_enabled"),
         "knowledge_enabled": _task_bool(task, "knowledge_enabled"),

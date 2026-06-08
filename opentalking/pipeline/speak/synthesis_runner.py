@@ -225,6 +225,7 @@ class FlashTalkRunner:
         wav2lip_postprocess_mode: str | None = None,
         fasterliveportrait_config: dict[str, object] | None = None,
         agent_user_id: str | None = None,
+        persona_id: str | None = None,
         agent_enabled: bool = False,
         memory_enabled: bool = False,
         knowledge_enabled: bool = False,
@@ -233,6 +234,7 @@ class FlashTalkRunner:
     ) -> None:
         self.session_id = session_id
         self.avatar_id = avatar_id
+        self.persona_id = (persona_id or "").strip() or None
         self.model_type = model_type
         self._wav2lip_postprocess_mode_override = optional_wav2lip_postprocess_mode(wav2lip_postprocess_mode)
         self._fasterliveportrait_config_override = normalize_fasterliveportrait_runtime_config(
@@ -321,7 +323,7 @@ class FlashTalkRunner:
         try:
             return await build_agent_context(
                 config=self.agent_config,
-                avatar_id=self.avatar_id,
+                avatar_id=self.persona_id or self.avatar_id,
                 query=query,
             )
         except Exception:
@@ -335,14 +337,14 @@ class FlashTalkRunner:
             store = default_memory_store()
             turn = await store.save_turn(
                 user_id=str(self.agent_config.user_id),
-                avatar_id=self.avatar_id,
+                avatar_id=self.persona_id or self.avatar_id,
                 session_id=self.session_id,
                 user_text=user_text,
                 assistant_text=assistant_text,
             )
             await store.save_explicit_memory_from_turn(
                 user_id=str(self.agent_config.user_id),
-                avatar_id=self.avatar_id,
+                avatar_id=self.persona_id or self.avatar_id,
                 source_turn_id=turn.id,
                 user_text=user_text,
             )

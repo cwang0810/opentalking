@@ -59,6 +59,8 @@ from opentalking.pipeline.recording.recording import (
     export_flashtalk_recording,
     flashtalk_recording_session_dir,
 )
+from opentalking.persona.session import build_session_defaults
+from opentalking.persona.store import PersonaStore
 
 
 def _effective_tts_provider(requested: str | None) -> str:
@@ -508,7 +510,37 @@ async def _preload_selected_wav2lip_avatar(
 async def create_session(body: CreateSessionRequest, request: Request) -> CreateSessionResponse:
     r: redis.Redis = request.app.state.redis
     settings = request.app.state.settings
-    _, avatar_dir = _resolve_avatar_dir(settings, body.avatar_id)
+    explicit_fields = getattr(body, "model_fields_set", set())
+    persona_id = (body.persona_id or "").strip() or None
+    persona_defaults = None
+    if persona_id:
+        try:
+            persona_store = PersonaStore(Path(getattr(settings, "persona_root", "./data/personas")))
+            persona_defaults = build_session_defaults(persona_store.get_persona(persona_id))
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail="persona not found") from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    avatar_id = (
+        (body.avatar_id or "").strip()
+        or (persona_defaults.avatar_id if persona_defaults is not None else "")
+    )
+    model = (
+        (body.model or "").strip()
+        or (persona_defaults.model if persona_defaults is not None else "")
+    )
+    if not avatar_id or not model:
+        raise HTTPException(status_code=400, detail="avatar_id and model are required unless persona_id is provided")
+
+    persona_tts_provider = persona_defaults.tts_provider if persona_defaults is not None else None
+    persona_stt_provider = persona_defaults.stt_provider if persona_defaults is not None else None
+    persona_tts_voice = persona_defaults.tts_voice if persona_defaults is not None else None
+    tts_provider_request = (body.tts_provider or "").strip() or persona_tts_provider
+    stt_provider_request = (body.stt_provider or "").strip() or persona_stt_provider
+    tts_voice_request = (body.tts_voice or "").strip() or persona_tts_voice
+
+    _, avatar_dir = _resolve_avatar_dir(settings, avatar_id)
     if not avatar_dir.is_dir():
         raise HTTPException(status_code=404, detail="avatar not found")
     try:
@@ -527,19 +559,19 @@ async def create_session(body: CreateSessionRequest, request: Request) -> Create
     from opentalking.providers.synthesis.availability import connected_model_ids
 
     available_models = await connected_model_ids(settings)
-    if body.model not in available_models:
+    if model not in available_models:
         raise HTTPException(
             status_code=400,
             detail=(
-                f"model '{body.model}' is not yet supported on this deployment. "
+                f"model '{model}' is not yet supported on this deployment. "
                 f"Currently available: {', '.join(available_models)}."
             ),
         )
     try:
-        tts_provider = normalize_tts_provider(body.tts_provider, default=None)
+        tts_provider = normalize_tts_provider(tts_provider_request, default=None)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
-    stt_provider = _effective_stt_provider(body.stt_provider, settings)
+    stt_provider = _effective_stt_provider(stt_provider_request, settings)
     _require_audio_provider_config(
         stt_provider=stt_provider,
         tts_provider=tts_provider,
@@ -548,38 +580,58 @@ async def create_session(body: CreateSessionRequest, request: Request) -> Create
     try:
         fasterliveportrait_config = (
             normalize_fasterliveportrait_runtime_config(body.fasterliveportrait_config)
-            if body.model == "fasterliveportrait"
+            if model == "fasterliveportrait"
             else {}
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
-    tts_voice = (body.tts_voice or "").strip() or None
-    (
-        agent_user_id,
-        agent_enabled,
-        memory_enabled,
-        knowledge_enabled,
-        knowledge_base_id,
-        knowledge_base_ids,
-    ) = _normalize_agent_session_config(body)
+    tts_voice = tts_voice_request or None
 
-    custom = _session_customizations(request).get(body.avatar_id, {})
-    llm_system_prompt = (body.llm_system_prompt or "").strip() or custom.get("llm_system_prompt")
+    agent_user_id = _normalize_agent_user_id(body.user_id)
+    if persona_defaults is not None and "memory_enabled" not in explicit_fields:
+        memory_enabled = bool(agent_user_id and persona_defaults.memory_enabled)
+    else:
+        memory_enabled = bool(agent_user_id and body.memory_enabled)
+    if persona_defaults is not None and "knowledge_enabled" not in explicit_fields:
+        knowledge_enabled = bool(persona_defaults.knowledge_enabled)
+    else:
+        knowledge_enabled = body.knowledge_enabled is not False
+    if (
+        persona_defaults is not None
+        and "knowledge_base_id" not in explicit_fields
+        and "knowledge_base_ids" not in explicit_fields
+    ):
+        knowledge_base_ids = list(persona_defaults.knowledge_base_ids)
+    else:
+        knowledge_base_ids = _normalize_knowledge_base_ids(
+            knowledge_base_id=body.knowledge_base_id,
+            knowledge_base_ids=body.knowledge_base_ids,
+        )
+    knowledge_base_id = knowledge_base_ids[0] if knowledge_base_ids else None
+    if persona_defaults is not None and "agent_enabled" not in explicit_fields:
+        agent_enabled = bool(memory_enabled or knowledge_enabled)
+    else:
+        agent_enabled = bool(body.agent_enabled or memory_enabled or knowledge_enabled)
+
+    custom = _session_customizations(request).get(avatar_id, {})
+    persona_prompt = persona_defaults.llm_system_prompt if persona_defaults is not None else None
+    llm_system_prompt = (body.llm_system_prompt or "").strip() or persona_prompt or custom.get("llm_system_prompt")
     custom_ref_image_path = custom.get("custom_ref_image_path")
     if custom_ref_image_path and not Path(custom_ref_image_path).exists():
         custom_ref_image_path = None
 
     await _preload_selected_wav2lip_avatar(
         request=request,
-        avatar_id=body.avatar_id,
-        model=body.model,
+        avatar_id=avatar_id,
+        model=model,
         wav2lip_postprocess_mode=body.wav2lip_postprocess_mode,
     )
 
     sid = await session_service.create_session(
         r,
-        avatar_id=body.avatar_id,
-        model=body.model,
+        persona_id=persona_id,
+        avatar_id=avatar_id,
+        model=model,
         tts_provider=tts_provider,
         stt_provider=stt_provider,
         tts_voice=tts_voice,
@@ -596,7 +648,7 @@ async def create_session(body: CreateSessionRequest, request: Request) -> Create
     )
     # Single-process mode: WebRTC offer runs immediately after; wait until init task
     # has created the SessionRunner (avoids 404 "session not loaded").
-    uses_flashtalk_slot = _uses_flashtalk_slot_model(body.model)
+    uses_flashtalk_slot = _uses_flashtalk_slot_model(model)
     runners = getattr(request.app.state, "session_runners", None)
     if runners is not None:
         settings = request.app.state.settings
@@ -626,18 +678,18 @@ async def create_session(body: CreateSessionRequest, request: Request) -> Create
         try:
             from opentalking.providers.synthesis.backends import resolve_model_backend
 
-            backend_name = resolve_model_backend(body.model, settings).backend
+            backend_name = resolve_model_backend(model, settings).backend
         except Exception:
-            log.warning("Failed to resolve model backend for session wait policy: model=%s", body.model, exc_info=True)
+            log.warning("Failed to resolve model backend for session wait policy: model=%s", model, exc_info=True)
 
         if (
             (
-                _is_flashtalk_compatible_model(body.model)
+                _is_flashtalk_compatible_model(model)
                 and not uses_flashtalk_slot
                 and backend_name in {"omnirt", "direct_ws"}
             )
-            or body.model == "quicktalk"
-            or (body.model == "musetalk" and backend_name == "local")
+            or model == "quicktalk"
+            or (model == "musetalk" and backend_name == "local")
         ):
             return CreateSessionResponse(session_id=sid, status="initializing")
 
