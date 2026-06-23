@@ -137,6 +137,18 @@ def _flatten_config(raw: dict[str, Any] | None) -> dict[str, Any]:
             "local_cosyvoice_service_url": "tts_local_cosyvoice_service_url",
             "local_cosyvoice_service_urls": "tts_local_cosyvoice_service_urls",
             "local_cosyvoice_device": "tts_local_cosyvoice_device",
+            "local_cosyvoice_fp16": "tts_local_cosyvoice_fp16",
+            "local_cosyvoice_load_jit": "tts_local_cosyvoice_load_jit",
+            "local_cosyvoice_load_trt": "tts_local_cosyvoice_load_trt",
+            "local_cosyvoice_load_vllm": "tts_local_cosyvoice_load_vllm",
+            "local_cosyvoice_trt_concurrent": "tts_local_cosyvoice_trt_concurrent",
+            "local_cosyvoice_token_hop_len": "tts_local_cosyvoice_token_hop_len",
+            "local_cosyvoice_token_max_hop_len": "tts_local_cosyvoice_token_max_hop_len",
+            "local_cosyvoice_stream_scale_factor": "tts_local_cosyvoice_stream_scale_factor",
+            "local_cosyvoice_flow_n_timesteps": "tts_local_cosyvoice_flow_n_timesteps",
+            "local_cosyvoice_max_token_text_ratio": "tts_local_cosyvoice_max_token_text_ratio",
+            "local_cosyvoice_min_token_text_ratio": "tts_local_cosyvoice_min_token_text_ratio",
+            "local_cosyvoice_mask_stop_tokens": "tts_local_cosyvoice_mask_stop_tokens",
             "local_indextts_model": "tts_local_indextts_model",
             "local_indextts_model_dir": "tts_local_indextts_model_dir",
             "local_indextts_cfg_path": "tts_local_indextts_cfg_path",
@@ -491,6 +503,18 @@ class Settings(BaseSettings):
     tts_local_cosyvoice_service_url: str = ""
     tts_local_cosyvoice_service_urls: str = ""
     tts_local_cosyvoice_device: str = "auto"
+    tts_local_cosyvoice_fp16: str = "auto"
+    tts_local_cosyvoice_load_jit: bool = False
+    tts_local_cosyvoice_load_trt: bool = False
+    tts_local_cosyvoice_load_vllm: bool = False
+    tts_local_cosyvoice_trt_concurrent: int = 1
+    tts_local_cosyvoice_token_hop_len: int = 0
+    tts_local_cosyvoice_token_max_hop_len: int = 0
+    tts_local_cosyvoice_stream_scale_factor: int = 0
+    tts_local_cosyvoice_flow_n_timesteps: int = 0
+    tts_local_cosyvoice_max_token_text_ratio: float = 6.0
+    tts_local_cosyvoice_min_token_text_ratio: float = 0.0
+    tts_local_cosyvoice_mask_stop_tokens: bool = True
     tts_local_indextts_model: str = "IndexTeam/IndexTTS-2"
     tts_local_indextts_model_dir: str = ""
     tts_local_indextts_cfg_path: str = ""

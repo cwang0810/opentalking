@@ -44,6 +44,16 @@ tts:
   voice: zh-CN-XiaoxiaoNeural
   sample_rate: 16000
   streaming_decode: true
+  local_cosyvoice_model: FunAudioLLM/Fun-CosyVoice3-0.5B-2512
+  local_cosyvoice_device: auto
+  local_cosyvoice_fp16: auto
+  local_cosyvoice_load_trt: false
+  local_cosyvoice_load_jit: false
+  local_cosyvoice_load_vllm: false
+  local_cosyvoice_trt_concurrent: 1
+  local_cosyvoice_max_token_text_ratio: 6.0
+  local_cosyvoice_min_token_text_ratio: 0.0
+  local_cosyvoice_mask_stop_tokens: true
 memory:
   provider: mem0
   enabled: false

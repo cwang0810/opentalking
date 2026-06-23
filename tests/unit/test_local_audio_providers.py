@@ -962,6 +962,75 @@ def test_local_cosyvoice3_uses_automodel(monkeypatch):
     assert loaded["model_dir"] == "/models/FunAudioLLM/Fun-CosyVoice3-0.5B-2512"
 
 
+def test_local_cosyvoice_in_process_reads_runtime_flags(monkeypatch):
+    from opentalking.providers.tts.local_cosyvoice import adapter as cosy_adapter
+
+    loaded: dict[str, object] = {}
+
+    class FakeAutoModel:
+        def __init__(self, model_dir, **kwargs):
+            loaded["model_dir"] = model_dir
+            loaded["kwargs"] = kwargs
+
+    monkeypatch.setitem(
+        sys.modules,
+        "cosyvoice.cli.cosyvoice",
+        SimpleNamespace(AutoModel=FakeAutoModel),
+    )
+    monkeypatch.setenv("OPENTALKING_TTS_LOCAL_COSYVOICE_MODEL_DIR", "/models/cosyvoice3")
+    monkeypatch.setenv("OPENTALKING_TTS_LOCAL_COSYVOICE_DEVICE", "cuda:0")
+    monkeypatch.setenv("OPENTALKING_TTS_LOCAL_COSYVOICE_FP16", "auto")
+    monkeypatch.setenv("OPENTALKING_TTS_LOCAL_COSYVOICE_LOAD_TRT", "1")
+    monkeypatch.setenv("OPENTALKING_TTS_LOCAL_COSYVOICE_LOAD_JIT", "1")
+    monkeypatch.setenv("OPENTALKING_TTS_LOCAL_COSYVOICE_LOAD_VLLM", "0")
+    monkeypatch.setenv("OPENTALKING_TTS_LOCAL_COSYVOICE_TRT_CONCURRENT", "2")
+
+    adapter = cosy_adapter.LocalCosyVoiceTTSAdapter(
+        model="FunAudioLLM/Fun-CosyVoice3-0.5B-2512",
+    )
+
+    assert isinstance(adapter._load_engine(), FakeAutoModel)
+    assert loaded["model_dir"] == "/models/cosyvoice3"
+    assert loaded["kwargs"] == {
+        "load_jit": True,
+        "load_trt": True,
+        "load_vllm": False,
+        "fp16": True,
+        "trt_concurrent": 2,
+    }
+
+
+def test_local_cosyvoice_provider_config_reports_runtime_flags(monkeypatch):
+    from opentalking.providers.tts.factory import tts_provider_config
+
+    monkeypatch.setenv("OPENTALKING_LOCAL_AUDIO_MODEL_ROOT", "/tmp/opentalking-local-audio")
+    monkeypatch.setenv("OPENTALKING_TTS_LOCAL_COSYVOICE_SERVICE_URL", "http://127.0.0.1:19090/synthesize")
+    monkeypatch.setenv("OPENTALKING_TTS_LOCAL_COSYVOICE_DEVICE", "cuda:0")
+    monkeypatch.setenv("OPENTALKING_TTS_LOCAL_COSYVOICE_FP16", "auto")
+    monkeypatch.setenv("OPENTALKING_TTS_LOCAL_COSYVOICE_LOAD_TRT", "1")
+    monkeypatch.setenv("OPENTALKING_TTS_LOCAL_COSYVOICE_TRT_CONCURRENT", "2")
+    monkeypatch.setenv("OPENTALKING_TTS_LOCAL_COSYVOICE_TOKEN_HOP_LEN", "8")
+    monkeypatch.setenv("OPENTALKING_TTS_LOCAL_COSYVOICE_TOKEN_MAX_HOP_LEN", "16")
+    monkeypatch.setenv("OPENTALKING_TTS_LOCAL_COSYVOICE_STREAM_SCALE_FACTOR", "1")
+    monkeypatch.setenv("OPENTALKING_TTS_LOCAL_COSYVOICE_FLOW_N_TIMESTEPS", "4")
+    monkeypatch.setenv("OPENTALKING_TTS_LOCAL_COSYVOICE_MAX_TOKEN_TEXT_RATIO", "6")
+    monkeypatch.setenv("OPENTALKING_TTS_LOCAL_COSYVOICE_MASK_STOP_TOKENS", "1")
+
+    status = tts_provider_config("local_cosyvoice")
+
+    assert status["service_url"] == "http://127.0.0.1:19090/synthesize"
+    assert status["device"] == "cuda:0"
+    assert status["fp16"] == "auto"
+    assert status["load_trt"] is True
+    assert status["trt_concurrent"] == 2
+    assert status["token_hop_len"] == 8
+    assert status["token_max_hop_len"] == 16
+    assert status["stream_scale_factor"] == 1
+    assert status["flow_n_timesteps"] == 4
+    assert status["max_token_text_ratio"] == 6.0
+    assert status["mask_stop_tokens"] is True
+
+
 def test_local_tts_adapters_read_settings_when_env_is_absent(monkeypatch):
     from opentalking.core import config as core_config
     from opentalking.providers.tts.local_cosyvoice.adapter import LocalCosyVoiceTTSAdapter
@@ -1454,6 +1523,153 @@ def test_cosyvoice_service_request_prompt_overrides_default(monkeypatch):
     assert seen["stream"] is True
     assert seen["prompt_wav"] == "/tmp/local-voice.wav"
     assert str(seen["prompt_text"]).endswith("这是本地复刻音色文本。")
+
+
+def test_cosyvoice_service_applies_validated_runtime_tuning(monkeypatch):
+    from scripts import local_cosyvoice_service as service_module
+
+    loaded: dict[str, object] = {}
+
+    class FakeScores:
+        def __init__(self, values):
+            self.values = list(values)
+
+        def __len__(self):
+            return len(self.values)
+
+        def __setitem__(self, key, value):
+            if isinstance(key, list):
+                for item in key:
+                    self.values[item] = value
+            else:
+                self.values[key] = value
+
+        def clone(self):
+            return FakeScores(self.values)
+
+    class FakeLLM:
+        def __init__(self):
+            self.calls = []
+            self.sampled_scores = []
+            self.stop_token_ids = [3, 4, 5]
+
+        def inference(self, **kwargs):
+            self.calls.append(kwargs)
+            yield "token"
+
+        def sampling_ids(self, weighted_scores, decoded_tokens, sampling, ignore_eos=True):
+            return "original"
+
+        def sampling(self, weighted_scores, decoded_tokens, sampling):
+            self.sampled_scores = list(weighted_scores.values)
+            return "sampled"
+
+    class FakeModel:
+        token_hop_len = 25
+        token_max_hop_len = 100
+        stream_scale_factor = 2
+
+        def __init__(self):
+            self.llm = FakeLLM()
+            self.flow = SimpleNamespace(inference_n_timesteps=10)
+
+    class FakeAutoModel:
+        fp16 = True
+        sample_rate = 24000
+
+        def __init__(self, **kwargs):
+            loaded.update(kwargs)
+            self.model = FakeModel()
+
+    monkeypatch.setitem(
+        sys.modules,
+        "cosyvoice.cli.cosyvoice",
+        SimpleNamespace(AutoModel=FakeAutoModel),
+    )
+
+    service = service_module.CosyVoiceService(
+        model_dir="/tmp/model",
+        runtime_dir="/tmp/runtime",
+        device="cpu",
+        prompt_audio="prompt.wav",
+        prompt_text="参考文本",
+        mode="zero_shot",
+        instruction="",
+        fp16=True,
+        load_trt=True,
+        trt_concurrent=2,
+        token_hop_len=8,
+        token_max_hop_len=16,
+        stream_scale_factor=1,
+        flow_n_timesteps=4,
+        max_token_text_ratio=6.0,
+        min_token_text_ratio=1.0,
+        mask_stop_tokens=True,
+    )
+    engine = service.model()
+
+    assert loaded["load_trt"] is True
+    assert loaded["trt_concurrent"] == 2
+    assert service.health_payload()["streaming"] == {
+        "token_hop_len": 8,
+        "token_max_hop_len": 16,
+        "stream_scale_factor": 1,
+    }
+    assert service.health_payload()["flow"] == {"inference_n_timesteps": 4}
+    assert service.health_payload()["llm_token_ratio"] == {
+        "max_token_text_ratio": 6.0,
+        "min_token_text_ratio": 1.0,
+    }
+    assert service.health_payload()["llm_stop_token_patch"] == {"stop_token_count": 3}
+
+    assert list(engine.model.llm.inference(text="你好")) == ["token"]
+    assert engine.model.llm.calls[-1]["max_token_text_ratio"] == 6.0
+    assert engine.model.llm.calls[-1]["min_token_text_ratio"] == 1.0
+    scores = FakeScores([0.0] * 8)
+    assert engine.model.llm.sampling_ids(scores, [], 25, ignore_eos=True) == "sampled"
+    assert scores.values == [0.0] * 8
+    assert engine.model.llm.sampled_scores[3:6] == [-float("inf")] * 3
+    assert engine.model.llm.sampling_ids(scores, [], 25, ignore_eos=False) == "original"
+
+
+def test_cosyvoice_service_resets_streaming_tuning_per_request(monkeypatch):
+    from scripts import local_cosyvoice_service as service_module
+
+    class FakeEngine:
+        sample_rate = 16000
+        token_hop_len = 8
+        token_max_hop_len = 16
+        stream_scale_factor = 1
+
+        def inference_zero_shot(self, text, prompt_text, prompt_audio, stream=True):
+            self.token_hop_len = 99
+            yield {"tts_speech": np.zeros(160, dtype=np.float32)}
+
+    engine = FakeEngine()
+    service_module.apply_streaming_tuning(
+        engine,
+        token_hop_len=8,
+        token_max_hop_len=16,
+        stream_scale_factor=1,
+    )
+    service = service_module.CosyVoiceService(
+        model_dir="model",
+        runtime_dir="runtime",
+        device="cpu",
+        prompt_audio="prompt.wav",
+        prompt_text="参考文本",
+        mode="zero_shot",
+        instruction="",
+        fp16=False,
+    )
+    monkeypatch.setattr(service, "model", lambda: engine)
+
+    stream, _sr = service.synthesize_pcm_stream(service_module.SynthesizeRequest(text="你好"))
+    assert b"".join(stream)
+
+    assert engine.token_hop_len == 8
+    assert engine.token_max_hop_len == 16
+    assert engine.stream_scale_factor == 1
 
 
 @pytest.mark.asyncio

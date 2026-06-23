@@ -47,6 +47,10 @@ OPENTALKING_TTS_LOCAL_COSYVOICE_MODEL_DIR=./models/local-audio/FunAudioLLM__Fun-
 OPENTALKING_TTS_LOCAL_COSYVOICE_RUNTIME_DIR=./models/local-audio/runtime/CosyVoice
 OPENTALKING_TTS_LOCAL_COSYVOICE_SERVICE_URL=http://127.0.0.1:19090/synthesize
 OPENTALKING_TTS_LOCAL_COSYVOICE_DEVICE=cuda:0
+OPENTALKING_TTS_LOCAL_COSYVOICE_FP16=auto
+OPENTALKING_TTS_LOCAL_COSYVOICE_LOAD_TRT=0
+OPENTALKING_TTS_LOCAL_COSYVOICE_MAX_TOKEN_TEXT_RATIO=6
+OPENTALKING_TTS_LOCAL_COSYVOICE_MASK_STOP_TOKENS=1
 ```
 
 Download local audio weights:
@@ -76,6 +80,24 @@ Start the local TTS service:
 ```bash title="Terminal"
 OPENTALKING_TTS_LOCAL_COSYVOICE_PRELOAD=1 \
 python scripts/local_cosyvoice_service.py --host 127.0.0.1 --port 19090
+```
+
+In prior GPU validation, the main CosyVoice3 issue was not a single TTFA number but seed-dependent output-length drift. The local CosyVoice service therefore keeps two stability guards on by default: `OPENTALKING_TTS_LOCAL_COSYVOICE_MASK_STOP_TOKENS=1` masks every stop token exposed by the CosyVoice LLM, and `OPENTALKING_TTS_LOCAL_COSYVOICE_MAX_TOKEN_TEXT_RATIO=6` bounds the token/text ratio so long prompts do not occasionally produce runaway audio. Keep these guards enabled for realtime use.
+
+TensorRT is optional. Enable it only after the current CosyVoice runtime, CUDA, onnxruntime-gpu/TensorRT engines, and model directory are compatible:
+
+```env title=".env"
+OPENTALKING_TTS_LOCAL_COSYVOICE_LOAD_TRT=1
+OPENTALKING_TTS_LOCAL_COSYVOICE_TRT_CONCURRENT=1
+OPENTALKING_TTS_LOCAL_COSYVOICE_TOKEN_HOP_LEN=8
+OPENTALKING_TTS_LOCAL_COSYVOICE_TOKEN_MAX_HOP_LEN=16
+OPENTALKING_TTS_LOCAL_COSYVOICE_STREAM_SCALE_FACTOR=1
+```
+
+After startup, check the sidecar health payload and verify `runtime_flags.load_trt`, `streaming`, `llm_token_ratio`, and `llm_stop_token_patch`:
+
+```bash title="Terminal"
+curl -fsS http://127.0.0.1:19090/health | python3 -m json.tool
 ```
 
 For the full local speech input, speech synthesis, and QuickTalk video chain, see [Local STT/TTS + QuickTalk](recipes/local-quicktalk-audio.md).

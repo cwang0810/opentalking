@@ -47,6 +47,10 @@ OPENTALKING_TTS_LOCAL_COSYVOICE_MODEL_DIR=./models/local-audio/FunAudioLLM__Fun-
 OPENTALKING_TTS_LOCAL_COSYVOICE_RUNTIME_DIR=./models/local-audio/runtime/CosyVoice
 OPENTALKING_TTS_LOCAL_COSYVOICE_SERVICE_URL=http://127.0.0.1:19090/synthesize
 OPENTALKING_TTS_LOCAL_COSYVOICE_DEVICE=cuda:0
+OPENTALKING_TTS_LOCAL_COSYVOICE_FP16=auto
+OPENTALKING_TTS_LOCAL_COSYVOICE_LOAD_TRT=0
+OPENTALKING_TTS_LOCAL_COSYVOICE_MAX_TOKEN_TEXT_RATIO=6
+OPENTALKING_TTS_LOCAL_COSYVOICE_MASK_STOP_TOKENS=1
 ```
 
 下载本地音频权重：
@@ -76,6 +80,24 @@ git submodule update --init --recursive
 ```bash title="终端"
 OPENTALKING_TTS_LOCAL_COSYVOICE_PRELOAD=1 \
 python scripts/local_cosyvoice_service.py --host 127.0.0.1 --port 19090
+```
+
+在既有 GPU 验证中，CosyVoice3 的关键问题不是单次 TTFA，而是随机种子导致的生成长度漂移。OpenTalking 的本地 CosyVoice service 因此默认保留两类稳定性保护：`OPENTALKING_TTS_LOCAL_COSYVOICE_MASK_STOP_TOKENS=1` 会屏蔽 CosyVoice LLM 暴露的全部 stop token，`OPENTALKING_TTS_LOCAL_COSYVOICE_MAX_TOKEN_TEXT_RATIO=6` 会限制 token/text 比例，避免长文本偶发生成过长音频。不要为了追求更快首包把这两个保护关掉。
+
+TensorRT 是可选加速。只有当当前 CosyVoice runtime、CUDA、onnxruntime-gpu/TensorRT engine 与模型目录匹配时再开启：
+
+```env title=".env"
+OPENTALKING_TTS_LOCAL_COSYVOICE_LOAD_TRT=1
+OPENTALKING_TTS_LOCAL_COSYVOICE_TRT_CONCURRENT=1
+OPENTALKING_TTS_LOCAL_COSYVOICE_TOKEN_HOP_LEN=8
+OPENTALKING_TTS_LOCAL_COSYVOICE_TOKEN_MAX_HOP_LEN=16
+OPENTALKING_TTS_LOCAL_COSYVOICE_STREAM_SCALE_FACTOR=1
+```
+
+启动后先检查 sidecar 健康信息，确认 `runtime_flags.load_trt`、`streaming`、`llm_token_ratio` 和 `llm_stop_token_patch` 符合预期：
+
+```bash title="终端"
+curl -fsS http://127.0.0.1:19090/health | python3 -m json.tool
 ```
 
 完整本地语音输入、语音合成和 QuickTalk 视频链路见 [本地 STT/TTS + QuickTalk](recipes/local-quicktalk-audio.md)。

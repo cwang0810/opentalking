@@ -150,6 +150,52 @@ def _env_device() -> str:
     )
 
 
+def _local_cosyvoice_bool(field: str, settings_name: str, default: bool) -> bool:
+    raw = os.environ.get(f"OPENTALKING_TTS_LOCAL_COSYVOICE_{field}", "").strip()
+    if not raw:
+        raw = _settings_value(settings_name, "")
+    if not raw:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _local_cosyvoice_int(field: str, settings_name: str, default: int) -> int:
+    raw = os.environ.get(f"OPENTALKING_TTS_LOCAL_COSYVOICE_{field}", "").strip()
+    if not raw:
+        raw = _settings_value(settings_name, "")
+    if not raw:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        return default
+
+
+def _local_cosyvoice_fp16(device: str) -> bool:
+    raw = (
+        os.environ.get("OPENTALKING_TTS_LOCAL_COSYVOICE_FP16", "").strip()
+        or _settings_value("tts_local_cosyvoice_fp16", "")
+        or "auto"
+    ).lower()
+    if raw == "auto":
+        return device.startswith("cuda")
+    return raw in {"1", "true", "yes", "on"}
+
+
+def _instantiate_cosyvoice_runtime(cls: Any, model_dir: str, kwargs: dict[str, Any]) -> Any:
+    runtime_kwargs = dict(kwargs)
+    optional_keys = ("load_vllm", "trt_concurrent", "load_jit", "load_trt", "fp16")
+    while True:
+        try:
+            return cls(model_dir, **runtime_kwargs)
+        except TypeError as exc:
+            text = str(exc)
+            unsupported = next((key for key in optional_keys if key in runtime_kwargs and key in text), None)
+            if unsupported is None:
+                raise
+            runtime_kwargs.pop(unsupported)
+
+
 def _audio_format_from_content_type(content_type: str | None) -> str | None:
     value = (content_type or "").split(";", 1)[0].strip().lower()
     if value in {"audio/wav", "audio/wave", "audio/x-wav"}:
@@ -253,6 +299,14 @@ class LocalCosyVoiceTTSAdapter:
             default_service_url,
         )
         self.device = _env_device()
+        self.fp16 = _local_cosyvoice_fp16(self.device)
+        self.load_jit = _local_cosyvoice_bool("LOAD_JIT", "tts_local_cosyvoice_load_jit", False)
+        self.load_trt = _local_cosyvoice_bool("LOAD_TRT", "tts_local_cosyvoice_load_trt", False)
+        self.load_vllm = _local_cosyvoice_bool("LOAD_VLLM", "tts_local_cosyvoice_load_vllm", False)
+        self.trt_concurrent = max(
+            1,
+            _local_cosyvoice_int("TRT_CONCURRENT", "tts_local_cosyvoice_trt_concurrent", 1),
+        )
         self._engine: Any | None = None
 
     async def synthesize_stream(self, text: str, voice: str | None = None) -> AsyncIterator[AudioChunk]:
@@ -350,9 +404,11 @@ class LocalCosyVoiceTTSAdapter:
             ) from exc
         model_dir = self.model_dir or _resolve_model_path(self.model)
         kwargs: dict[str, Any] = {
-            "load_jit": False,
-            "load_trt": False,
-            "fp16": self.device.startswith("cuda"),
+            "load_jit": self.load_jit,
+            "load_trt": self.load_trt,
+            "load_vllm": self.load_vllm,
+            "fp16": self.fp16,
+            "trt_concurrent": self.trt_concurrent,
         }
         model_lower = self.model.lower()
         if "cosyvoice3" in model_lower:
@@ -361,7 +417,7 @@ class LocalCosyVoiceTTSAdapter:
             cls = getattr(cosyvoice_module, "CosyVoice2")
         else:
             cls = getattr(cosyvoice_module, "CosyVoice")
-        self._engine = cls(model_dir, **kwargs)
+        self._engine = _instantiate_cosyvoice_runtime(cls, model_dir, kwargs)
         return self._engine
 
     def _available_voice(self, engine: Any, requested: str) -> str:

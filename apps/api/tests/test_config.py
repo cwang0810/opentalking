@@ -127,6 +127,30 @@ def test_agent_lightrag_chunk_fallback_can_be_enabled(monkeypatch: pytest.Monkey
     assert settings.agent_lightrag_chunk_fallback_enabled is True
 
 
+def test_local_cosyvoice_runtime_settings_read_prefixed_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENTALKING_TTS_LOCAL_COSYVOICE_FP16", "auto")
+    monkeypatch.setenv("OPENTALKING_TTS_LOCAL_COSYVOICE_LOAD_TRT", "true")
+    monkeypatch.setenv("OPENTALKING_TTS_LOCAL_COSYVOICE_TRT_CONCURRENT", "2")
+    monkeypatch.setenv("OPENTALKING_TTS_LOCAL_COSYVOICE_TOKEN_HOP_LEN", "8")
+    monkeypatch.setenv("OPENTALKING_TTS_LOCAL_COSYVOICE_TOKEN_MAX_HOP_LEN", "16")
+    monkeypatch.setenv("OPENTALKING_TTS_LOCAL_COSYVOICE_STREAM_SCALE_FACTOR", "1")
+    monkeypatch.setenv("OPENTALKING_TTS_LOCAL_COSYVOICE_FLOW_N_TIMESTEPS", "4")
+    monkeypatch.setenv("OPENTALKING_TTS_LOCAL_COSYVOICE_MAX_TOKEN_TEXT_RATIO", "6")
+    monkeypatch.setenv("OPENTALKING_TTS_LOCAL_COSYVOICE_MASK_STOP_TOKENS", "true")
+
+    settings = Settings(_env_file=None)
+
+    assert settings.tts_local_cosyvoice_fp16 == "auto"
+    assert settings.tts_local_cosyvoice_load_trt is True
+    assert settings.tts_local_cosyvoice_trt_concurrent == 2
+    assert settings.tts_local_cosyvoice_token_hop_len == 8
+    assert settings.tts_local_cosyvoice_token_max_hop_len == 16
+    assert settings.tts_local_cosyvoice_stream_scale_factor == 1
+    assert settings.tts_local_cosyvoice_flow_n_timesteps == 4
+    assert settings.tts_local_cosyvoice_max_token_text_ratio == 6.0
+    assert settings.tts_local_cosyvoice_mask_stop_tokens is True
+
+
 def _active_env_names(contents: str) -> set[str]:
     names: set[str] = set()
     for raw_line in contents.splitlines():

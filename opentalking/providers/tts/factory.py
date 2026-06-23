@@ -146,6 +146,41 @@ def _local_cosyvoice_device() -> str:
     )
 
 
+def _local_cosyvoice_bool(field: str, settings_name: str, default: bool) -> bool:
+    raw = _provider_env("local_cosyvoice", field) or _settings_value(settings_name, "")
+    if not raw:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _local_cosyvoice_int(field: str, settings_name: str, default: int) -> int:
+    raw = _provider_env("local_cosyvoice", field) or _settings_value(settings_name, "")
+    if not raw:
+        return default
+    try:
+        return int(str(raw).strip())
+    except ValueError:
+        return default
+
+
+def _local_cosyvoice_float(field: str, settings_name: str, default: float) -> float:
+    raw = _provider_env("local_cosyvoice", field) or _settings_value(settings_name, "")
+    if not raw:
+        return default
+    try:
+        return float(str(raw).strip())
+    except ValueError:
+        return default
+
+
+def _local_cosyvoice_fp16() -> str:
+    return (
+        _provider_env("local_cosyvoice", "FP16")
+        or _settings_value("tts_local_cosyvoice_fp16", "")
+        or "auto"
+    )
+
+
 def _local_audio_asset_dir(name: str, required_file: str, *fallback_names: str) -> str:
     root = _local_audio_model_root()
     for candidate_name in (name, *fallback_names):
@@ -482,7 +517,7 @@ def tts_enabled_providers() -> list[str]:
     return out or [_provider()]
 
 
-def tts_provider_config(provider: str) -> dict[str, str | bool]:
+def tts_provider_config(provider: str) -> dict[str, str | bool | int | float]:
     p = normalize_tts_provider(provider, default=None) or _provider()
     if p == "indextts":
         resolved = _resolve_indextts_provider(p)
@@ -539,6 +574,26 @@ def tts_provider_config(provider: str) -> dict[str, str | bool]:
     if p == "local_cosyvoice":
         model = _local_cosyvoice_model()
         service_url = _local_cosyvoice_service_url()
+        token_hop_len = _local_cosyvoice_int(
+            "TOKEN_HOP_LEN",
+            "tts_local_cosyvoice_token_hop_len",
+            0,
+        )
+        token_max_hop_len = _local_cosyvoice_int(
+            "TOKEN_MAX_HOP_LEN",
+            "tts_local_cosyvoice_token_max_hop_len",
+            0,
+        )
+        stream_scale_factor = _local_cosyvoice_int(
+            "STREAM_SCALE_FACTOR",
+            "tts_local_cosyvoice_stream_scale_factor",
+            0,
+        )
+        flow_n_timesteps = _local_cosyvoice_int(
+            "FLOW_N_TIMESTEPS",
+            "tts_local_cosyvoice_flow_n_timesteps",
+            0,
+        )
         return {
             "provider": p,
             "model": model,
@@ -546,7 +601,36 @@ def tts_provider_config(provider: str) -> dict[str, str | bool]:
             "voice": "local-default",
             "device": _local_cosyvoice_device(),
             "key_set": False,
+            "service_url": service_url,
             "service_url_set": bool(service_url),
+            "fp16": _local_cosyvoice_fp16(),
+            "load_jit": _local_cosyvoice_bool("LOAD_JIT", "tts_local_cosyvoice_load_jit", False),
+            "load_trt": _local_cosyvoice_bool("LOAD_TRT", "tts_local_cosyvoice_load_trt", False),
+            "load_vllm": _local_cosyvoice_bool("LOAD_VLLM", "tts_local_cosyvoice_load_vllm", False),
+            "trt_concurrent": _local_cosyvoice_int(
+                "TRT_CONCURRENT",
+                "tts_local_cosyvoice_trt_concurrent",
+                1,
+            ),
+            "token_hop_len": token_hop_len,
+            "token_max_hop_len": token_max_hop_len,
+            "stream_scale_factor": stream_scale_factor,
+            "flow_n_timesteps": flow_n_timesteps,
+            "max_token_text_ratio": _local_cosyvoice_float(
+                "MAX_TOKEN_TEXT_RATIO",
+                "tts_local_cosyvoice_max_token_text_ratio",
+                6.0,
+            ),
+            "min_token_text_ratio": _local_cosyvoice_float(
+                "MIN_TOKEN_TEXT_RATIO",
+                "tts_local_cosyvoice_min_token_text_ratio",
+                0.0,
+            ),
+            "mask_stop_tokens": _local_cosyvoice_bool(
+                "MASK_STOP_TOKENS",
+                "tts_local_cosyvoice_mask_stop_tokens",
+                True,
+            ),
         }
     if p == "local_qwen3_tts":
         model = (
@@ -670,7 +754,7 @@ def tts_provider_config(provider: str) -> dict[str, str | bool]:
     }
 
 
-def tts_status(provider: str | None = None) -> dict[str, str | bool]:
+def tts_status(provider: str | None = None) -> dict[str, str | bool | int | float]:
     return tts_provider_config(provider or _provider())
 
 
